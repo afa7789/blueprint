@@ -2,10 +2,13 @@
 .env
 .env.local
 .env.production
+.env.production.local
+scripts/.deploy.env
 
 # Backend
 backend/uploads/
 backend/tmp/
+build/
 
 # Frontend
 frontend/node_modules/

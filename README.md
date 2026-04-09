@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="resources/banner.png" alt="Blueprint Banner" style="max-width: 80%; height: auto;">
+</p>
+
 # Blueprint - Service Starter Kit
 
 **MIT License - Free to use, including commercial projects.**
