@@ -8,7 +8,7 @@
         <h3>My Account</h3>
         <router-link to="/user/profile" @click="sidebarOpen = false"><i class="fas fa-user"></i> Profile</router-link>
         <router-link to="/user/password" @click="sidebarOpen = false"><i class="fas fa-lock"></i> Security</router-link>
-        <router-link to="/user/cards" @click="sidebarOpen = false"><i class="fas fa-credit-card"></i> Saved Cards</router-link>
+        <router-link v-if="flagStripe" to="/user/cards" @click="sidebarOpen = false"><i class="fas fa-credit-card"></i> Saved Cards</router-link>
         <router-link to="/user/orders" @click="sidebarOpen = false"><i class="fas fa-box"></i> Orders</router-link>
       </nav>
     </aside>
@@ -19,8 +19,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlags'
+
 const sidebarOpen = ref(false)
+const flagStripe = ref(false)
+
+onMounted(async () => {
+  await fetchFeatureFlags()
+  flagStripe.value = isFeatureEnabled('payments_stripe')
+})
 </script>
 
 <style scoped>

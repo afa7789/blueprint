@@ -7,13 +7,13 @@
       <nav>
         <h3>Admin</h3>
         <router-link to="/admin/users" @click="sidebarOpen = false"><i class="fas fa-users"></i> Users</router-link>
-        <router-link to="/admin/waitlist" @click="sidebarOpen = false"><i class="fas fa-clipboard-list"></i> Waitlist</router-link>
+        <router-link v-if="flagWaitlist" to="/admin/waitlist" @click="sidebarOpen = false"><i class="fas fa-clipboard-list"></i> Waitlist</router-link>
         <router-link to="/admin/features" @click="sidebarOpen = false"><i class="fas fa-toggle-on"></i> Feature Flags</router-link>
         <router-link to="/admin/banners" @click="sidebarOpen = false"><i class="fas fa-image"></i> Banners</router-link>
-        <router-link to="/admin/linktree" @click="sidebarOpen = false"><i class="fas fa-link"></i> Linktree</router-link>
-        <router-link to="/admin/theme" @click="sidebarOpen = false"><i class="fas fa-palette"></i> Theme</router-link>
-        <router-link to="/admin/email-groups" @click="sidebarOpen = false"><i class="fas fa-envelope"></i> Email Groups</router-link>
-        <router-link to="/admin/blog" @click="sidebarOpen = false"><i class="fas fa-pen-to-square"></i> Blog</router-link>
+        <router-link v-if="flagLinktree" to="/admin/linktree" @click="sidebarOpen = false"><i class="fas fa-link"></i> Linktree</router-link>
+        <router-link v-if="flagBrandKit" to="/admin/theme" @click="sidebarOpen = false"><i class="fas fa-palette"></i> Theme</router-link>
+        <router-link v-if="flagEmailAuto" to="/admin/email-groups" @click="sidebarOpen = false"><i class="fas fa-envelope"></i> Email Groups</router-link>
+        <router-link v-if="flagBlog" to="/admin/blog" @click="sidebarOpen = false"><i class="fas fa-pen-to-square"></i> Blog</router-link>
         <router-link to="/admin/jobs" @click="sidebarOpen = false"><i class="fas fa-clock"></i> Jobs</router-link>
         <router-link to="/admin/tools" @click="sidebarOpen = false"><i class="fas fa-toolbox"></i> Tools Hub</router-link>
         <router-link to="/admin/logs" @click="sidebarOpen = false"><i class="fas fa-file-lines"></i> Logs</router-link>
@@ -30,8 +30,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlags'
+
 const sidebarOpen = ref(false)
+const flagWaitlist = ref(false)
+const flagLinktree = ref(false)
+const flagBrandKit = ref(false)
+const flagEmailAuto = ref(false)
+const flagBlog = ref(false)
+
+onMounted(async () => {
+  await fetchFeatureFlags()
+  flagWaitlist.value = isFeatureEnabled('waitlist_enabled')
+  flagLinktree.value = isFeatureEnabled('linktree_enabled')
+  flagBrandKit.value = isFeatureEnabled('brand_kit_enabled')
+  flagEmailAuto.value = isFeatureEnabled('email_auto_enabled')
+  flagBlog.value = isFeatureEnabled('blog_enabled')
+})
 </script>
 
 <style scoped>
