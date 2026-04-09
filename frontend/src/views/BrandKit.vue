@@ -205,25 +205,28 @@ function downloadAsset(url: string, filename: string) {
       <section class="bk-section">
         <h2 class="bk-section-title">Typography</h2>
         <div class="bk-type-grid">
-          <div v-if="brand.font_family" class="bk-type-card">
+          <div class="bk-type-card">
             <div class="bk-type-label">Body Font</div>
-            <div class="bk-type-family">{{ brand.font_family }}</div>
-            <div class="bk-type-preview" :style="{ fontFamily: brand.font_family }">
+            <div class="bk-type-family">{{ brand.font_family || 'system-ui, Segoe UI, Roboto, sans-serif' }}</div>
+            <div class="bk-type-preview" :style="{ fontFamily: brand.font_family || 'var(--sans)' }">
+              Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz
+            </div>
+            <div class="bk-type-preview bk-type-preview--sm" :style="{ fontFamily: brand.font_family || 'var(--sans)' }">
               The quick brown fox jumps over the lazy dog. 0123456789
             </div>
           </div>
-          <div v-if="brand.heading_font" class="bk-type-card">
+          <div class="bk-type-card">
             <div class="bk-type-label">Heading Font</div>
-            <div class="bk-type-family">{{ brand.heading_font }}</div>
-            <div class="bk-type-preview bk-type-preview--heading" :style="{ fontFamily: brand.heading_font }">
-              The quick brown fox jumps over the lazy dog.
+            <div class="bk-type-family">{{ brand.heading_font || 'system-ui, Segoe UI, Roboto, sans-serif' }}</div>
+            <div class="bk-type-preview bk-type-preview--heading" :style="{ fontFamily: brand.heading_font || 'var(--heading)' }">
+              Heading Preview Text
             </div>
           </div>
-          <div v-if="brand.mono_font" class="bk-type-card">
+          <div class="bk-type-card">
             <div class="bk-type-label">Monospace Font</div>
-            <div class="bk-type-family">{{ brand.mono_font }}</div>
-            <div class="bk-type-preview bk-type-preview--mono" :style="{ fontFamily: brand.mono_font }">
-              const answer = 42; // Hello, World!
+            <div class="bk-type-family">{{ brand.mono_font || 'ui-monospace, Consolas, monospace' }}</div>
+            <div class="bk-type-preview bk-type-preview--mono" :style="{ fontFamily: brand.mono_font || 'var(--mono)' }">
+              const blueprint = { version: '1.0', ready: true };
             </div>
           </div>
         </div>
@@ -545,6 +548,12 @@ function downloadAsset(url: string, filename: string) {
 .bk-type-preview--heading {
   font-size: 28px;
   font-weight: 700;
+}
+
+.bk-type-preview--sm {
+  font-size: 15px;
+  color: var(--text);
+  margin-top: 8px;
 }
 
 .bk-type-preview--mono {
