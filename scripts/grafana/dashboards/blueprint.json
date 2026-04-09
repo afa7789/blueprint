@@ -1,0 +1,132 @@
+{
+  "uid": "blueprint-overview",
+  "title": "Blueprint Overview",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Users",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "blueprint_users_total", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Orders",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "sum(blueprint_orders_total)", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total Revenue",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "sum(blueprint_orders_revenue_total)", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Total Blog Posts",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "blueprint_blog_posts_total", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Request Rate",
+      "gridPos": { "x": 0, "y": 4, "w": 8, "h": 8 },
+      "targets": [{ "expr": "rate(blueprint_http_requests_total[5m])", "legendFormat": "{{method}} {{path}} {{status}}", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Error Rate",
+      "gridPos": { "x": 8, "y": 4, "w": 8, "h": 8 },
+      "targets": [{ "expr": "rate(blueprint_http_requests_total{status=~\"5..\"}[5m])", "legendFormat": "{{method}} {{path}}", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Request Duration p95",
+      "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+      "targets": [{ "expr": "histogram_quantile(0.95, rate(blueprint_http_request_duration_seconds_bucket[5m]))", "legendFormat": "{{method}} {{path}}", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Login Rate",
+      "gridPos": { "x": 0, "y": 12, "w": 8, "h": 8 },
+      "targets": [{ "expr": "rate(blueprint_auth_logins_total[5m])", "legendFormat": "{{status}}", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Registration Rate",
+      "gridPos": { "x": 8, "y": 12, "w": 8, "h": 8 },
+      "targets": [{ "expr": "rate(blueprint_auth_registrations_total[5m])", "legendFormat": "registrations", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Rate Limit Hits",
+      "gridPos": { "x": 16, "y": 12, "w": 8, "h": 8 },
+      "targets": [{ "expr": "rate(blueprint_rate_limit_hits_total[5m])", "legendFormat": "{{key_type}}", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Orders by Status",
+      "gridPos": { "x": 0, "y": 20, "w": 6, "h": 8 },
+      "targets": [{ "expr": "rate(blueprint_orders_total[5m])", "legendFormat": "{{status}} {{payment_method}}", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Revenue by Payment Method",
+      "gridPos": { "x": 6, "y": 20, "w": 6, "h": 8 },
+      "targets": [{ "expr": "rate(blueprint_orders_revenue_total[5m])", "legendFormat": "{{payment_method}}", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Active Products",
+      "gridPos": { "x": 12, "y": 20, "w": 6, "h": 8 },
+      "targets": [{ "expr": "blueprint_products_total", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Waitlist",
+      "gridPos": { "x": 18, "y": 20, "w": 6, "h": 8 },
+      "targets": [{ "expr": "blueprint_waitlist_total", "refId": "A" }],
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "selected": true, "text": "Prometheus", "value": "Prometheus" }
+      }
+    ]
+  }
+}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/afa/blueprint/backend/internal/domain"
 	"github.com/afa/blueprint/backend/pkg/config"
+	"github.com/afa/blueprint/backend/pkg/metrics"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -161,6 +162,13 @@ func (h *StoreHandler) CreateOrder(c *fiber.Ctx) error {
 	if err := h.orders.Create(c.Context(), order, orderItems); err != nil {
 		return err
 	}
+
+	pm = "unknown"
+	if order.PaymentMethod != nil {
+		pm = *order.PaymentMethod
+	}
+	metrics.OrdersTotal.WithLabelValues("pending", pm).Inc()
+	metrics.OrdersRevenue.WithLabelValues(pm).Add(order.Total)
 
 	return c.Status(fiber.StatusCreated).JSON(order)
 }

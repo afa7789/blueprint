@@ -11,6 +11,7 @@ import (
 
 	"github.com/afa/blueprint/backend/internal/domain"
 	"github.com/afa/blueprint/backend/pkg/config"
+	"github.com/afa/blueprint/backend/pkg/metrics"
 	"github.com/afa/blueprint/backend/pkg/middleware"
 )
 
@@ -151,6 +152,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "could not generate tokens"})
 	}
 	h.setTokenCookies(c, accessToken, refreshToken)
+	metrics.AuthRegistrationsTotal.Inc()
 
 	return c.Status(201).JSON(fiber.Map{
 		"user":         toUserResponse(u),
@@ -169,10 +171,12 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	u, err := h.users.FindByEmail(c.Context(), req.Email)
 	if err != nil {
+		metrics.AuthLoginsTotal.WithLabelValues("failed").Inc()
 		return c.Status(401).JSON(fiber.Map{"error": "invalid credentials"})
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(req.Password)); err != nil {
+		metrics.AuthLoginsTotal.WithLabelValues("failed").Inc()
 		return c.Status(401).JSON(fiber.Map{"error": "invalid credentials"})
 	}
 
@@ -191,6 +195,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "could not generate tokens"})
 	}
 	h.setTokenCookies(c, accessToken, refreshToken)
+	metrics.AuthLoginsTotal.WithLabelValues("success").Inc()
 
 	return c.JSON(fiber.Map{
 		"user":         toUserResponse(u),

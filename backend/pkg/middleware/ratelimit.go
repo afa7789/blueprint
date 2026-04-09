@@ -3,10 +3,13 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/afa/blueprint/backend/pkg/metrics"
 )
 
 type RateLimitConfig struct {
@@ -41,6 +44,11 @@ func RateLimit(rdb *redis.Client, cfg RateLimitConfig) fiber.Handler {
 		c.Set("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(ttl).Unix()))
 
 		if int(count) > cfg.Max {
+			keyType := "ip"
+			if strings.HasPrefix(key, "rl:email:") {
+				keyType = "email"
+			}
+			metrics.RateLimitHits.WithLabelValues(keyType).Inc()
 			return c.Status(429).JSON(fiber.Map{
 				"error":       "too many requests",
 				"retry_after": int(ttl.Seconds()),

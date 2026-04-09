@@ -9,7 +9,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	stripe "github.com/stripe/stripe-go/v82"
+	"github.com/valyala/fasthttp/fasthttpadaptor"
 
 	"github.com/afa/blueprint/backend/internal/handlers"
 	"github.com/afa/blueprint/backend/internal/infrastructure"
@@ -17,6 +19,7 @@ import (
 	"github.com/afa/blueprint/backend/pkg/config"
 	"github.com/afa/blueprint/backend/pkg/database"
 	applog "github.com/afa/blueprint/backend/pkg/logger"
+	"github.com/afa/blueprint/backend/pkg/metrics"
 	"github.com/afa/blueprint/backend/pkg/middleware"
 )
 
@@ -71,12 +74,23 @@ func main() {
 	app.Use(middleware.SecurityHeaders())
 	app.Use(middleware.RequestSizeLimit(cfg.MaxRequestBodyMB * 1024 * 1024))
 
+	// Prometheus metrics middleware
+	app.Use(middleware.PrometheusMiddleware())
+
 	// General API rate limit
 	app.Use(middleware.RateLimit(rdb, middleware.RateLimitConfig{
 		Max:     cfg.RateLimitAPI,
 		Window:  time.Minute,
 		KeyFunc: middleware.KeyByIP,
 	}))
+
+	// Prometheus metrics endpoint
+	app.Get("/metrics", func(c *fiber.Ctx) error {
+		handler := promhttp.Handler()
+		fasthttpHandler := fasthttpadaptor.NewFastHTTPHandler(handler)
+		fasthttpHandler(c.Context())
+		return nil
+	})
 
 	// Health check
 	app.Get("/healthz", func(c *fiber.Ctx) error {
@@ -110,6 +124,23 @@ func main() {
 	couponRepo := infrastructure.NewCouponRepo(pool)
 	securitySettingsRepo := infrastructure.NewSecuritySettingRepo(pool)
 	profileRepo := infrastructure.NewUserProfileRepo(pool)
+
+	// Gauge metrics updater
+	go func() {
+		for {
+			var count int64
+			ctx := c.Background()
+			pool.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
+			metrics.UsersTotal.Set(float64(count))
+			pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE is_active = true").Scan(&count)
+			metrics.ProductsTotal.Set(float64(count))
+			pool.QueryRow(ctx, "SELECT COUNT(*) FROM blog_posts").Scan(&count)
+			metrics.BlogPostsTotal.Set(float64(count))
+			pool.QueryRow(ctx, "SELECT COUNT(*) FROM waitlist").Scan(&count)
+			metrics.WaitlistTotal.Set(float64(count))
+			time.Sleep(60 * time.Second)
+		}
+	}()
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(userRepo, flagRepo, rdb, cfg)

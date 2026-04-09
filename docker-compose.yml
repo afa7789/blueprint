@@ -98,6 +98,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: blueprint
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./scripts/grafana/provisioning:/etc/grafana/provisioning
+      - ./scripts/grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - prometheus
 
