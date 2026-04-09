@@ -105,6 +105,7 @@ const routes = [
       { path: 'products', name: 'AdminProducts', component: () => import('../views/Admin/AdminProducts.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'orders', name: 'AdminOrders', component: () => import('../views/Admin/AdminOrders.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'coupons', name: 'AdminCoupons', component: () => import('../views/Admin/AdminCoupons.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
+      { path: 'payments', name: 'AdminPayments', component: () => import('../views/Admin/AdminPayments.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
     ]
   },
 ]

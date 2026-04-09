@@ -17,6 +17,7 @@
         <router-link v-if="storeEnabled" to="/admin/products" @click="sidebarOpen = false"><i class="fas fa-box-open"></i> Products</router-link>
         <router-link v-if="storeEnabled" to="/admin/orders" @click="sidebarOpen = false"><i class="fas fa-receipt"></i> Orders</router-link>
         <router-link v-if="storeEnabled" to="/admin/coupons" @click="sidebarOpen = false"><i class="fas fa-ticket"></i> Coupons</router-link>
+        <router-link v-if="flagPayments" to="/admin/payments" @click="sidebarOpen = false"><i class="fas fa-credit-card"></i> Payments</router-link>
         <router-link to="/admin/jobs" @click="sidebarOpen = false"><i class="fas fa-clock"></i> Jobs</router-link>
         <router-link to="/admin/tools" @click="sidebarOpen = false"><i class="fas fa-toolbox"></i> Tools Hub</router-link>
         <router-link to="/admin/logs" @click="sidebarOpen = false"><i class="fas fa-file-lines"></i> Logs</router-link>
@@ -43,6 +44,7 @@ const flagBrandKit = ref(false)
 const flagEmailAuto = ref(false)
 const flagBlog = ref(false)
 const storeEnabled = ref(false)
+const flagPayments = ref(false)
 
 onMounted(async () => {
   await fetchFeatureFlags()
@@ -52,6 +54,7 @@ onMounted(async () => {
   flagEmailAuto.value = isFeatureEnabled('email_auto_enabled')
   flagBlog.value = isFeatureEnabled('blog_enabled')
   storeEnabled.value = isFeatureEnabled('store')
+  flagPayments.value = isFeatureEnabled('payments_stripe') || isFeatureEnabled('payments_pix')
 })
 </script>
 
