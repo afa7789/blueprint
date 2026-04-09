@@ -6,10 +6,10 @@
     <aside class="sidebar" :class="{ open: sidebarOpen }">
       <nav>
         <h3>My Account</h3>
-        <router-link to="/user/profile" @click="sidebarOpen = false">Profile</router-link>
-        <router-link to="/user/password" @click="sidebarOpen = false">Security</router-link>
-        <router-link to="/user/cards" @click="sidebarOpen = false">Saved Cards</router-link>
-        <router-link to="/user/orders" @click="sidebarOpen = false">Orders</router-link>
+        <router-link to="/user/profile" @click="sidebarOpen = false"><i class="fas fa-user"></i> Profile</router-link>
+        <router-link to="/user/password" @click="sidebarOpen = false"><i class="fas fa-lock"></i> Security</router-link>
+        <router-link to="/user/cards" @click="sidebarOpen = false"><i class="fas fa-credit-card"></i> Saved Cards</router-link>
+        <router-link to="/user/orders" @click="sidebarOpen = false"><i class="fas fa-box"></i> Orders</router-link>
       </nav>
     </aside>
     <main class="user-main">
@@ -55,13 +55,26 @@ const sidebarOpen = ref(false)
 }
 
 .sidebar nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 8px 12px;
   border-radius: 6px;
   color: var(--text);
   text-decoration: none;
   font-size: 14px;
   transition: background 0.15s, color 0.15s;
+}
+
+.sidebar nav a i {
+  width: 16px;
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.sidebar nav a.router-link-active i {
+  opacity: 1;
 }
 
 .sidebar nav a:hover {

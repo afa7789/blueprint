@@ -23,12 +23,12 @@ async function logout() {
       </router-link>
       <div class="top-nav-right">
         <template v-if="auth.isAuthenticated">
-          <router-link to="/user">My Account</router-link>
-          <router-link v-if="auth.isAdmin" to="/admin">Admin</router-link>
-          <button class="nav-btn" @click="logout">Logout</button>
+          <router-link to="/user"><i class="fas fa-user"></i> My Account</router-link>
+          <router-link v-if="auth.isAdmin" to="/admin"><i class="fas fa-gauge-high"></i> Admin</router-link>
+          <button class="nav-btn" @click="logout"><i class="fas fa-right-from-bracket"></i> Logout</button>
         </template>
         <template v-else>
-          <router-link to="/login">Login</router-link>
+          <router-link to="/login"><i class="fas fa-right-to-bracket"></i> Login</router-link>
         </template>
       </div>
     </nav>

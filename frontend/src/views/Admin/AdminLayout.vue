@@ -6,19 +6,20 @@
     <aside class="sidebar" :class="{ open: sidebarOpen }">
       <nav>
         <h3>Admin</h3>
-        <router-link to="/admin/users" @click="sidebarOpen = false">Users</router-link>
-        <router-link to="/admin/features" @click="sidebarOpen = false">Feature Flags</router-link>
-        <router-link to="/admin/banners" @click="sidebarOpen = false">Banners</router-link>
-        <router-link to="/admin/linktree" @click="sidebarOpen = false">Linktree</router-link>
-        <router-link to="/admin/brand-kit" @click="sidebarOpen = false">Brand Kit</router-link>
-        <router-link to="/admin/email-groups" @click="sidebarOpen = false">Email Groups</router-link>
-        <router-link to="/admin/jobs" @click="sidebarOpen = false">Jobs</router-link>
-        <router-link to="/admin/tools" @click="sidebarOpen = false">Tools Hub</router-link>
-        <router-link to="/admin/logs" @click="sidebarOpen = false">Logs</router-link>
-        <router-link to="/admin/audit" @click="sidebarOpen = false">Audit</router-link>
-        <router-link to="/admin/legal" @click="sidebarOpen = false">Legal Pages</router-link>
-        <router-link to="/admin/security" @click="sidebarOpen = false">Security</router-link>
-        <router-link to="/admin/config" @click="sidebarOpen = false">Config / ENV</router-link>
+        <router-link to="/admin/users" @click="sidebarOpen = false"><i class="fas fa-users"></i> Users</router-link>
+        <router-link to="/admin/features" @click="sidebarOpen = false"><i class="fas fa-toggle-on"></i> Feature Flags</router-link>
+        <router-link to="/admin/banners" @click="sidebarOpen = false"><i class="fas fa-image"></i> Banners</router-link>
+        <router-link to="/admin/linktree" @click="sidebarOpen = false"><i class="fas fa-link"></i> Linktree</router-link>
+        <router-link to="/admin/brand-kit" @click="sidebarOpen = false"><i class="fas fa-palette"></i> Brand Kit</router-link>
+        <router-link to="/admin/email-groups" @click="sidebarOpen = false"><i class="fas fa-envelope"></i> Email Groups</router-link>
+        <router-link to="/admin/blog" @click="sidebarOpen = false"><i class="fas fa-pen-to-square"></i> Blog</router-link>
+        <router-link to="/admin/jobs" @click="sidebarOpen = false"><i class="fas fa-clock"></i> Jobs</router-link>
+        <router-link to="/admin/tools" @click="sidebarOpen = false"><i class="fas fa-toolbox"></i> Tools Hub</router-link>
+        <router-link to="/admin/logs" @click="sidebarOpen = false"><i class="fas fa-file-lines"></i> Logs</router-link>
+        <router-link to="/admin/audit" @click="sidebarOpen = false"><i class="fas fa-clipboard-list"></i> Audit</router-link>
+        <router-link to="/admin/legal" @click="sidebarOpen = false"><i class="fas fa-scale-balanced"></i> Legal Pages</router-link>
+        <router-link to="/admin/security" @click="sidebarOpen = false"><i class="fas fa-shield-halved"></i> Security</router-link>
+        <router-link to="/admin/config" @click="sidebarOpen = false"><i class="fas fa-gear"></i> Config / ENV</router-link>
       </nav>
     </aside>
     <main class="admin-main">
@@ -64,13 +65,26 @@ const sidebarOpen = ref(false)
 }
 
 .sidebar nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 8px 12px;
   border-radius: 6px;
   color: var(--text);
   text-decoration: none;
   font-size: 14px;
   transition: background 0.15s, color 0.15s;
+}
+
+.sidebar nav a i {
+  width: 16px;
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.sidebar nav a.router-link-active i {
+  opacity: 1;
 }
 
 .sidebar nav a:hover {
