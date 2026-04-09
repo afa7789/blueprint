@@ -225,6 +225,9 @@ func (h *AdminHandler) CreateEmailGroup(c *fiber.Ctx) error {
 	if err := c.BodyParser(&g); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
+	if g.Name == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "name is required"})
+	}
 	if err := h.emailGroups.Create(c.Context(), &g); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
@@ -235,7 +238,7 @@ func (h *AdminHandler) DeleteEmailGroup(c *fiber.Ctx) error {
 	if err := h.emailGroups.Delete(c.Context(), c.Params("id")); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
-	return c.SendStatus(fiber.StatusNoContent)
+	return c.JSON(fiber.Map{"deleted": true})
 }
 
 // ---- Email Subscriptions ----
