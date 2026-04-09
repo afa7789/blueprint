@@ -1,0 +1,16 @@
+[Unit]
+Description=Blueprint Health Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=blueprint
+Group=blueprint
+WorkingDirectory=/opt/blueprint/health
+EnvironmentFile=/opt/blueprint/.env.production
+ExecStart=/opt/blueprint/health/blueprint-health
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

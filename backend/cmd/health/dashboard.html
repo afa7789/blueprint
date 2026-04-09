@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Monitor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        .container { max-width: 900px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 2rem; }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .status-badge { display: inline-block; padding: 0.5rem 1.5rem; border-radius: 2rem; font-weight: 600; font-size: 1.25rem; }
+        .status-healthy { background: #16a34a; color: #fff; }
+        .status-degraded { background: #f59e0b; color: #000; }
+        .status-unhealthy { background: #dc2626; color: #fff; }
+        .meta { color: #94a3b8; margin-top: 0.5rem; }
+        .grid { display: grid; gap: 1rem; }
+        .card { background: #1e293b; border-radius: 0.75rem; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+        .check-info h3 { font-size: 1rem; margin-bottom: 0.25rem; }
+        .check-info span { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 0.25rem; }
+        .type-critical { background: #7f1d1d; color: #fecaca; }
+        .type-degraded { background: #451a03; color: #fed7aa; }
+        .type-alert { background: #1e3a5f; color: #bae6fd; }
+        .type-info { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+        .check-status { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot-up { background: #22c55e; }
+        .dot-down { background: #ef4444; }
+        .dot-unknown { background: #94a3b8; }
+        .details { font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem; }
+    </style>
+    <meta http-equiv="refresh" content="30">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Health Monitor</h1>
+            <span class="status-badge {{if eq .Status "healthy"}}status-healthy{{else if eq .Status "degraded"}}status-degraded{{else}}status-unhealthy{{end}}">{{.Status}}</span>
+            <p class="meta">Updated: {{.Timestamp}} | Uptime: {{.Uptime}}</p>
+        </header>
+        <div class="grid">
+            {{range .Checks}}
+            <div class="card">
+                <div class="check-info">
+                    <h3>{{.Name}}</h3>
+                    <span class="type-{{.Type}}">{{.Type}}</span>
+                    {{if .Message}}<p class="details">{{.Message}}</p>{{end}}
+                </div>
+                <div class="check-status">
+                    <span class="dot {{if eq .Status "up"}}dot-up{{else if eq .Status "down"}}dot-down{{else}}dot-unknown{{end}}"></span>
+                    {{.Status}}
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>

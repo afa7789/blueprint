@@ -1,0 +1,18 @@
+[Unit]
+Description=Blueprint API Server
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=blueprint
+Group=blueprint
+WorkingDirectory=/opt/blueprint/api
+EnvironmentFile=/opt/blueprint/.env.production
+ExecStart=/opt/blueprint/api/blueprint-api
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
