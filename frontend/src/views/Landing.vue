@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import WaitlistForm from '../components/landing/WaitlistForm.vue'
+import { fetchFeatureFlags, isFeatureEnabled } from '../services/featureFlags'
+
+const waitlistEnabled = ref(true)
+const storeEnabled = ref(true)
+
+onMounted(async () => {
+  await fetchFeatureFlags()
+  waitlistEnabled.value = isFeatureEnabled('waitlist')
+  storeEnabled.value = isFeatureEnabled('store')
+})
 
 interface FeatureItem {
   text: string
@@ -290,7 +300,7 @@ const doneFeatures = categories.value.reduce((sum, c) => sum + c.features.filter
         Full-stack foundation with Go + Vue 3. Landing page, admin panel, e-commerce, payments,
         blog, health monitoring, and production-grade deployment — all in one kit.
       </p>
-      <WaitlistForm />
+      <WaitlistForm v-if="waitlistEnabled" />
       <div class="hero-links">
         <a href="https://github.com/afa7789/blueprint" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
           <i class="fab fa-github"></i> GitHub
@@ -424,7 +434,7 @@ const doneFeatures = categories.value.reduce((sum, c) => sum + c.features.filter
       <p>Join the waitlist or dive straight into the code.</p>
       <div class="cta-buttons">
         <router-link to="/register" class="btn btn-primary btn-lg">Create Account</router-link>
-        <router-link to="/store" class="btn btn-outline btn-lg">Browse Store</router-link>
+        <router-link v-if="storeEnabled" to="/store" class="btn btn-outline btn-lg">Browse Store</router-link>
       </div>
     </section>
   </div>

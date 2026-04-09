@@ -4,6 +4,7 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
 import { useAuthStore } from '../stores/auth'
+import { fetchFeatureFlags, isFeatureEnabled } from '../services/featureFlags'
 
 const routes = [
   {
@@ -126,7 +127,14 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
+  await fetchFeatureFlags()
+
+  if (to.path.startsWith('/store') && !isFeatureEnabled('store')) return { path: '/' }
+  if (to.path.startsWith('/blog') && !isFeatureEnabled('blog')) return { path: '/' }
+  if (to.path === '/linktree' && !isFeatureEnabled('linktree')) return { path: '/' }
+  if (to.path === '/brand-kit' && !isFeatureEnabled('brand_kit')) return { path: '/' }
+
   const auth = useAuthStore()
   if (to.meta.requiresAuth) {
     if (!auth.isAuthenticated) {

@@ -2,7 +2,8 @@ import { ref } from 'vue'
 import { api } from './api'
 
 export interface FeatureFlag {
-  name: string
+  id: number
+  key: string
   enabled: boolean
 }
 
@@ -25,7 +26,12 @@ export async function fetchFeatureFlags(): Promise<FeatureFlag[]> {
   return featureFlags.value
 }
 
-export function isFeatureEnabled(name: string): boolean {
-  const flag = featureFlags.value.find(f => f.name === name)
+export function isFeatureEnabled(key: string): boolean {
+  // Support both exact key and short name (e.g. "store" matches "store_enabled")
+  const flag = featureFlags.value.find(f => f.key === key || f.key === key + '_enabled')
   return flag?.enabled ?? false
+}
+
+export function getFlags(): FeatureFlag[] {
+  return featureFlags.value
 }

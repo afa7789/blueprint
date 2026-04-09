@@ -99,25 +99,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cart'
 import { api } from '../../services/api'
+import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlags'
 
 const cart = useCartStore()
 const router = useRouter()
 
 const shipping = ref({ name: '', street: '', city: '', state: '', zip: '' })
-const paymentMethod = ref('stripe')
+const paymentMethod = ref('')
 const submitting = ref(false)
 const orderError = ref('')
 const orderResult = ref<{ method: string; orderId: string; txId?: string } | null>(null)
 
-const paymentMethods = [
-  { value: 'stripe', label: 'Credit Card (Stripe)' },
-  { value: 'pix_auto', label: 'PIX Auto' },
-  { value: 'pix_manual', label: 'PIX Manual' },
+const allPaymentMethods = [
+  { value: 'stripe', label: 'Credit Card (Stripe)', flag: 'payments_stripe' },
+  { value: 'pix_auto', label: 'PIX Auto', flag: 'pix_auto' },
+  { value: 'pix_manual', label: 'PIX Manual', flag: 'pix_manual' },
 ]
+
+const flagsLoaded = ref(false)
+
+const paymentMethods = computed(() =>
+  allPaymentMethods.filter(m => isFeatureEnabled(m.flag))
+)
+
+onMounted(async () => {
+  await fetchFeatureFlags()
+  flagsLoaded.value = true
+  if (paymentMethods.value.length > 0) {
+    paymentMethod.value = paymentMethods.value[0].value
+  }
+})
 
 async function placeOrder() {
   submitting.value = true
