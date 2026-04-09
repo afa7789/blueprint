@@ -17,6 +17,10 @@ async function logout() {
 <template>
   <div id="app">
     <nav class="top-nav">
+      <router-link to="/" class="top-nav-brand">
+        <img src="/inverted-icon.svg" alt="Blueprint" class="brand-logo" />
+        <span class="brand-name">Blueprint</span>
+      </router-link>
       <div class="top-nav-right">
         <template v-if="auth.isAuthenticated">
           <router-link to="/user">My Account</router-link>
@@ -39,10 +43,30 @@ async function logout() {
 <style scoped>
 .top-nav {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   padding: 8px 16px;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
+}
+
+.top-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.brand-logo {
+  height: 18px;
+  width: auto;
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+  letter-spacing: -0.3px;
 }
 
 .top-nav-right {
