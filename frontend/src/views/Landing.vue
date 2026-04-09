@@ -5,11 +5,13 @@ import { fetchFeatureFlags, isFeatureEnabled } from '../services/featureFlags'
 
 const waitlistEnabled = ref(true)
 const storeEnabled = ref(true)
+const blogEnabled = ref(true)
 
 onMounted(async () => {
   await fetchFeatureFlags()
   waitlistEnabled.value = isFeatureEnabled('waitlist')
   storeEnabled.value = isFeatureEnabled('store')
+  blogEnabled.value = isFeatureEnabled('blog')
 })
 
 interface FeatureItem {
@@ -318,14 +320,14 @@ const doneFeatures = categories.value.reduce((sum, c) => sum + c.features.filter
           <h3>Auth + Roles</h3>
           <p>JWT with refresh tokens, RBAC (admin, operator, user), email verification, rate limiting.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card" :class="{ dimmed: !storeEnabled }">
           <div class="feature-icon">🛒</div>
-          <h3>E-Commerce</h3>
+          <h3>E-Commerce <span v-if="!storeEnabled" class="flag-off">off</span></h3>
           <p>Products, categories, cart, orders, coupons, pre-sale, Stripe + PIX payments.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card" :class="{ dimmed: !blogEnabled }">
           <div class="feature-icon">📝</div>
-          <h3>Blog + AI</h3>
+          <h3>Blog + AI <span v-if="!blogEnabled" class="flag-off">off</span></h3>
           <p>Admin CRUD, image uploads, AI content generation, slug-based URLs.</p>
         </div>
         <div class="feature-card">
@@ -561,6 +563,21 @@ const doneFeatures = categories.value.reduce((sum, c) => sum + c.features.filter
 .feature-card:hover {
   border-color: var(--accent-border);
   box-shadow: 0 4px 16px rgba(38, 68, 236, 0.08);
+}
+
+.feature-card.dimmed {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.flag-off {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--code-bg);
+  color: var(--text);
+  font-weight: 400;
+  vertical-align: middle;
 }
 
 .feature-icon {

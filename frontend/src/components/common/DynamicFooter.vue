@@ -5,6 +5,8 @@ import { api } from '../../services/api'
 
 const linktreeEnabled = ref(false)
 const storeEnabled = ref(false)
+const blogEnabled = ref(false)
+const brandKitEnabled = ref(false)
 
 interface LegalLink {
   slug: string
@@ -16,6 +18,8 @@ onMounted(async () => {
   await fetchFeatureFlags()
   linktreeEnabled.value = isFeatureEnabled('linktree')
   storeEnabled.value = isFeatureEnabled('store')
+  blogEnabled.value = isFeatureEnabled('blog')
+  brandKitEnabled.value = isFeatureEnabled('brand_kit')
 
   try {
     legalPages.value = await api.get<LegalLink[]>('/api/v1/legal')
@@ -33,13 +37,18 @@ onMounted(async () => {
           <h3>Store</h3>
           <router-link to="/store">Browse Products</router-link>
         </div>
+        <div v-if="blogEnabled" class="footer-section">
+          <h3>Blog</h3>
+          <router-link to="/blog">Read Articles</router-link>
+        </div>
         <div v-if="linktreeEnabled" class="footer-section">
           <h3>Linktree</h3>
           <router-link to="/linktree">View Links</router-link>
         </div>
         <div class="footer-section">
           <h3>Resources</h3>
-          <router-link to="/brand-kit">Brand Kit</router-link>
+          <router-link v-if="brandKitEnabled" to="/brand-kit">Brand Kit</router-link>
+          <router-link to="/legal/terms">Terms</router-link>
         </div>
       </div>
       <div class="footer-bottom">

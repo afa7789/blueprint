@@ -7,6 +7,8 @@ import { useAuthStore } from './stores/auth'
 import { useRouter } from 'vue-router'
 import { useTheme } from './composables/useTheme'
 import { useAccessibility } from './composables/useAccessibility'
+import { ref, onMounted } from 'vue'
+import { fetchFeatureFlags, isFeatureEnabled } from './services/featureFlags'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -14,6 +16,15 @@ const { loadTheme } = useTheme()
 loadTheme()
 const { init } = useAccessibility()
 init()
+
+const storeEnabled = ref(false)
+const blogEnabled = ref(false)
+
+onMounted(async () => {
+  await fetchFeatureFlags()
+  storeEnabled.value = isFeatureEnabled('store')
+  blogEnabled.value = isFeatureEnabled('blog')
+})
 
 async function logout() {
   await auth.logout()
@@ -28,6 +39,10 @@ async function logout() {
         <img src="/inverted-icon.svg" alt="Blueprint" class="brand-logo" />
         <span class="brand-name">Blueprint</span>
       </router-link>
+      <div class="top-nav-center">
+        <router-link v-if="storeEnabled" to="/store"><i class="fas fa-store"></i> Store</router-link>
+        <router-link v-if="blogEnabled" to="/blog"><i class="fas fa-pen-to-square"></i> Blog</router-link>
+      </div>
       <div class="top-nav-right">
         <template v-if="auth.isAuthenticated">
           <router-link to="/user"><i class="fas fa-user"></i> My Account</router-link>
@@ -75,6 +90,23 @@ async function logout() {
   font-weight: 600;
   color: var(--text-h);
   letter-spacing: -0.3px;
+}
+
+.top-nav-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.top-nav-center a {
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.top-nav-center a:hover {
+  color: var(--accent);
 }
 
 .top-nav-right {
