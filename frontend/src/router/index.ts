@@ -14,30 +14,14 @@ const routes = [
   },
   {
     path: '/store',
-    name: 'StoreIndex',
-    component: () => import('../views/Store/StoreIndex.vue'),
-  },
-  {
-    path: '/store/cart',
-    name: 'Cart',
-    component: () => import('../views/Store/Cart.vue'),
-  },
-  {
-    path: '/store/checkout',
-    name: 'Checkout',
-    component: () => import('../views/Store/Checkout.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/store/orders',
-    name: 'OrderHistory',
-    component: () => import('../views/Store/OrderHistory.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/store/:id',
-    name: 'ProductDetail',
-    component: () => import('../views/Store/ProductDetail.vue'),
+    component: () => import('../views/Store/StoreLayout.vue'),
+    children: [
+      { path: '', name: 'StoreIndex', component: () => import('../views/Store/StoreIndex.vue') },
+      { path: 'cart', name: 'Cart', component: () => import('../views/Store/Cart.vue') },
+      { path: 'checkout', name: 'Checkout', component: () => import('../views/Store/Checkout.vue'), meta: { requiresAuth: true } },
+      { path: 'orders', name: 'OrderHistory', component: () => import('../views/Store/OrderHistory.vue'), meta: { requiresAuth: true } },
+      { path: ':id', name: 'ProductDetail', component: () => import('../views/Store/ProductDetail.vue') },
+    ]
   },
   {
     path: '/blog',
@@ -118,6 +102,9 @@ const routes = [
       { path: 'legal', name: 'AdminLegal', component: () => import('../views/Admin/AdminLegal.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'security', name: 'AdminSecurity', component: () => import('../views/Admin/AdminSecurity.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'config', name: 'AdminConfig', component: () => import('../views/Admin/AdminConfig.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
+      { path: 'products', name: 'AdminProducts', component: () => import('../views/Admin/AdminProducts.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
+      { path: 'orders', name: 'AdminOrders', component: () => import('../views/Admin/AdminOrders.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
+      { path: 'coupons', name: 'AdminCoupons', component: () => import('../views/Admin/AdminCoupons.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
     ]
   },
 ]
