@@ -8,6 +8,12 @@
 
 Full-stack starter kit: Go backend + Vue 3 frontend. Landing page, admin panel, e-commerce, payments (Stripe + PIX), blog with AI, health monitoring, job scheduler, logs, and more.
 
+## Print
+
+<p align="center">
+  <img src="resources/print_screen_blueprint.png" alt="landpage printscreen" style="max-width: 65%; height: auto;">
+</p>
+
 ## Quick Start
 
 ### Prerequisites

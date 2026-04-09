@@ -9,4 +9,5 @@ COPY . .
 
 EXPOSE 5173
 
-CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
+# Install deps (in case package.json changed via volume mount) then start dev server
+CMD ["sh", "-c", "bun install && bun run dev --host 0.0.0.0"]
