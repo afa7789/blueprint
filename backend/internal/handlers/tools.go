@@ -81,6 +81,26 @@ func (h *ToolsHandler) DeleteTool(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// internalPingURL returns a Docker-internal URL for health checking.
+// External URLs (localhost:8083) don't work from inside Docker.
+func (h *ToolsHandler) internalPingURL(tool domain.AdminTool) string {
+	name := tool.Name
+	switch {
+	case name == "pgweb":
+		return "http://pgweb:8081"
+	case name == "Grafana" || name == "grafana":
+		return "http://grafana:3000/grafana/login"
+	case name == "Prometheus" || name == "prometheus":
+		return "http://prometheus:9090/prometheus/-/healthy"
+	case name == "Redis Commander" || name == "redis-commander":
+		return "" // not in compose by default
+	case name == "MinIO Console" || name == "minio":
+		return "" // not in compose by default
+	}
+	// Fall back to configured URL
+	return h.toolURL(tool)
+}
+
 func (h *ToolsHandler) PingTool(c *fiber.Ctx) error {
 	tools, err := h.tools.List(c.Context(), false)
 	if err != nil {
@@ -99,18 +119,19 @@ func (h *ToolsHandler) PingTool(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, "tool not found")
 	}
 
-	url := h.toolURL(*target)
-	if url == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "tool has no URL configured")
+	pingURL := h.internalPingURL(*target)
+	if pingURL == "" {
+		return c.JSON(fiber.Map{"status": "unconfigured", "latency_ms": 0})
 	}
 
 	client := &http.Client{Timeout: 3 * time.Second}
 	start := time.Now()
-	resp, err := client.Get(url)
+	resp, err := client.Get(pingURL)
 	latency := time.Since(start).Milliseconds()
 
 	if err != nil || resp.StatusCode >= 500 {
 		return c.JSON(fiber.Map{"status": "down", "latency_ms": latency})
 	}
+	defer resp.Body.Close()
 	return c.JSON(fiber.Map{"status": "up", "latency_ms": latency})
 }

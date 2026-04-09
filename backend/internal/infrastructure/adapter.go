@@ -651,8 +651,23 @@ func NewBrandKitRepo(pool *pgxpool.Pool) domain.BrandKitRepository { return &bra
 func (r *brandKitRepo) Get(ctx context.Context) (*domain.BrandKit, error) {
 	bk := &domain.BrandKit{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id,primary_color,secondary_color,logo_url,favicon_url,font_family,updated_at FROM brand_kit LIMIT 1`).
-		Scan(&bk.ID, &bk.PrimaryColor, &bk.SecondaryColor, &bk.LogoURL, &bk.FaviconURL, &bk.FontFamily, &bk.UpdatedAt)
+		`SELECT id,primary_color,secondary_color,
+		        accent_color,accent_bg,accent_border,
+		        text_color,text_heading_color,bg_color,border_color,code_bg_color,
+		        dark_accent_color,dark_accent_bg,dark_accent_border,
+		        dark_text_color,dark_text_heading_color,dark_bg_color,dark_border_color,dark_code_bg_color,
+		        logo_url,favicon_url,font_family,heading_font,mono_font,base_font_size,
+		        updated_at
+		 FROM brand_kit LIMIT 1`).
+		Scan(
+			&bk.ID, &bk.PrimaryColor, &bk.SecondaryColor,
+			&bk.AccentColor, &bk.AccentBg, &bk.AccentBorder,
+			&bk.TextColor, &bk.TextHeadingColor, &bk.BgColor, &bk.BorderColor, &bk.CodeBgColor,
+			&bk.DarkAccentColor, &bk.DarkAccentBg, &bk.DarkAccentBorder,
+			&bk.DarkTextColor, &bk.DarkTextHeadingColor, &bk.DarkBgColor, &bk.DarkBorderColor, &bk.DarkCodeBgColor,
+			&bk.LogoURL, &bk.FaviconURL, &bk.FontFamily, &bk.HeadingFont, &bk.MonoFont, &bk.BaseFontSize,
+			&bk.UpdatedAt,
+		)
 	return bk, err
 }
 
@@ -661,11 +676,30 @@ func (r *brandKitRepo) Upsert(ctx context.Context, bk *domain.BrandKit) error {
 		bk.ID = uuid.NewString()
 	}
 	return r.pool.QueryRow(ctx,
-		`INSERT INTO brand_kit(id,primary_color,secondary_color,logo_url,favicon_url,font_family,updated_at)
-		 VALUES($1,$2,$3,$4,$5,$6,NOW())
-		 ON CONFLICT(id) DO UPDATE SET primary_color=$2,secondary_color=$3,logo_url=$4,favicon_url=$5,font_family=$6,updated_at=NOW()
+		`INSERT INTO brand_kit(
+		        id,primary_color,secondary_color,
+		        accent_color,accent_bg,accent_border,
+		        text_color,text_heading_color,bg_color,border_color,code_bg_color,
+		        dark_accent_color,dark_accent_bg,dark_accent_border,
+		        dark_text_color,dark_text_heading_color,dark_bg_color,dark_border_color,dark_code_bg_color,
+		        logo_url,favicon_url,font_family,heading_font,mono_font,base_font_size,
+		        updated_at)
+		 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,NOW())
+		 ON CONFLICT(id) DO UPDATE SET
+		        primary_color=$2,secondary_color=$3,
+		        accent_color=$4,accent_bg=$5,accent_border=$6,
+		        text_color=$7,text_heading_color=$8,bg_color=$9,border_color=$10,code_bg_color=$11,
+		        dark_accent_color=$12,dark_accent_bg=$13,dark_accent_border=$14,
+		        dark_text_color=$15,dark_text_heading_color=$16,dark_bg_color=$17,dark_border_color=$18,dark_code_bg_color=$19,
+		        logo_url=$20,favicon_url=$21,font_family=$22,heading_font=$23,mono_font=$24,base_font_size=$25,
+		        updated_at=NOW()
 		 RETURNING updated_at`,
-		bk.ID, bk.PrimaryColor, bk.SecondaryColor, bk.LogoURL, bk.FaviconURL, bk.FontFamily,
+		bk.ID, bk.PrimaryColor, bk.SecondaryColor,
+		bk.AccentColor, bk.AccentBg, bk.AccentBorder,
+		bk.TextColor, bk.TextHeadingColor, bk.BgColor, bk.BorderColor, bk.CodeBgColor,
+		bk.DarkAccentColor, bk.DarkAccentBg, bk.DarkAccentBorder,
+		bk.DarkTextColor, bk.DarkTextHeadingColor, bk.DarkBgColor, bk.DarkBorderColor, bk.DarkCodeBgColor,
+		bk.LogoURL, bk.FaviconURL, bk.FontFamily, bk.HeadingFont, bk.MonoFont, bk.BaseFontSize,
 	).Scan(&bk.UpdatedAt)
 }
 

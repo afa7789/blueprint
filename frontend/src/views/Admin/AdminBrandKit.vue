@@ -10,56 +10,223 @@
     <div v-if="success" class="success">Saved successfully.</div>
     <div v-if="loading">Loading...</div>
     <form v-else class="brand-form" @submit.prevent="save">
-      <label>Primary Color
-        <div class="color-row">
-          <input v-model="form.primary_color" type="color" />
-          <input v-model="form.primary_color" type="text" class="color-text" />
+
+      <!-- Section 1: Brand -->
+      <section class="form-section">
+        <h3 class="section-title">Brand</h3>
+        <label>Logo URL
+          <input v-model="form.logo_url" type="text" placeholder="https://example.com/logo.png" />
+        </label>
+        <label>Favicon URL
+          <input v-model="form.favicon_url" type="text" placeholder="https://example.com/favicon.ico" />
+        </label>
+      </section>
+
+      <!-- Section 2: Light Mode Colors -->
+      <section class="form-section">
+        <h3 class="section-title">Light Mode Colors</h3>
+        <label>Accent Color
+          <div class="color-row">
+            <input v-model="form.accent_color" type="color" />
+            <input v-model="form.accent_color" type="text" class="color-text" />
+          </div>
+        </label>
+        <label>Accent Background <span class="hint">(rgba)</span>
+          <input v-model="form.accent_bg" type="text" placeholder="rgba(38, 68, 236, 0.1)" />
+        </label>
+        <label>Accent Border <span class="hint">(rgba)</span>
+          <input v-model="form.accent_border" type="text" placeholder="rgba(38, 68, 236, 0.3)" />
+        </label>
+        <label>Text Color
+          <div class="color-row">
+            <input v-model="form.text_color" type="color" />
+            <input v-model="form.text_color" type="text" class="color-text" />
+          </div>
+        </label>
+        <label>Heading Color
+          <div class="color-row">
+            <input v-model="form.text_heading_color" type="color" />
+            <input v-model="form.text_heading_color" type="text" class="color-text" />
+          </div>
+        </label>
+        <label>Background Color
+          <div class="color-row">
+            <input v-model="form.bg_color" type="color" />
+            <input v-model="form.bg_color" type="text" class="color-text" />
+          </div>
+        </label>
+        <label>Border Color
+          <div class="color-row">
+            <input v-model="form.border_color" type="color" />
+            <input v-model="form.border_color" type="text" class="color-text" />
+          </div>
+        </label>
+        <label>Code Background
+          <div class="color-row">
+            <input v-model="form.code_bg_color" type="color" />
+            <input v-model="form.code_bg_color" type="text" class="color-text" />
+          </div>
+        </label>
+      </section>
+
+      <!-- Section 3: Dark Mode Colors -->
+      <section class="form-section dark-section">
+        <h3 class="section-title">Dark Mode Colors</h3>
+        <label>Dark Accent Color
+          <div class="color-row">
+            <input v-model="form.dark_accent_color" type="color" />
+            <input v-model="form.dark_accent_color" type="text" class="color-text" />
+          </div>
+        </label>
+        <label>Dark Accent Background <span class="hint">(rgba)</span>
+          <input v-model="form.dark_accent_bg" type="text" placeholder="rgba(38, 68, 236, 0.15)" />
+        </label>
+        <label>Dark Accent Border <span class="hint">(rgba)</span>
+          <input v-model="form.dark_accent_border" type="text" placeholder="rgba(38, 68, 236, 0.4)" />
+        </label>
+        <label>Dark Text Color
+          <div class="color-row">
+            <input v-model="form.dark_text_color" type="color" />
+            <input v-model="form.dark_text_color" type="text" class="color-text" />
+          </div>
+        </label>
+        <label>Dark Heading Color
+          <div class="color-row">
+            <input v-model="form.dark_text_heading_color" type="color" />
+            <input v-model="form.dark_text_heading_color" type="text" class="color-text" />
+          </div>
+        </label>
+        <label>Dark Background Color
+          <div class="color-row">
+            <input v-model="form.dark_bg_color" type="color" />
+            <input v-model="form.dark_bg_color" type="text" class="color-text" />
+          </div>
+        </label>
+        <label>Dark Border Color
+          <div class="color-row">
+            <input v-model="form.dark_border_color" type="color" />
+            <input v-model="form.dark_border_color" type="text" class="color-text" />
+          </div>
+        </label>
+        <label>Dark Code Background
+          <div class="color-row">
+            <input v-model="form.dark_code_bg_color" type="color" />
+            <input v-model="form.dark_code_bg_color" type="text" class="color-text" />
+          </div>
+        </label>
+      </section>
+
+      <!-- Section 4: Typography -->
+      <section class="form-section">
+        <h3 class="section-title">Typography</h3>
+        <label>Font Family
+          <input v-model="form.font_family" type="text" placeholder="Inter, sans-serif" />
+        </label>
+        <label>Heading Font
+          <input v-model="form.heading_font" type="text" placeholder="Inter, sans-serif" />
+        </label>
+        <label>Monospace Font
+          <input v-model="form.mono_font" type="text" placeholder="JetBrains Mono, monospace" />
+        </label>
+        <label>Base Font Size
+          <select v-model="form.base_font_size">
+            <option value="14px">14px</option>
+            <option value="16px">16px</option>
+            <option value="18px">18px</option>
+            <option value="20px">20px</option>
+          </select>
+        </label>
+      </section>
+
+      <!-- Section 5: Preview -->
+      <section class="form-section">
+        <h3 class="section-title">Preview</h3>
+        <div class="preview" :style="previewStyles">
+          <h3>Preview</h3>
+          <p>Sample text with <code>inline code</code></p>
+          <button type="button">Accent Button</button>
         </div>
-      </label>
-      <label>Secondary Color
-        <div class="color-row">
-          <input v-model="form.secondary_color" type="color" />
-          <input v-model="form.secondary_color" type="text" class="color-text" />
-        </div>
-      </label>
-      <label>Logo URL
-        <input v-model="form.logo_url" type="text" />
-      </label>
-      <label>Favicon URL
-        <input v-model="form.favicon_url" type="text" />
-      </label>
-      <label>Font Family
-        <input v-model="form.font_family" type="text" placeholder="e.g. Inter, sans-serif" />
-      </label>
+      </section>
+
       <button type="submit" class="btn-primary">Save Brand Kit</button>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { api } from '../../services/api'
 import HelperBox from '../../components/admin/HelperBox.vue'
+import { useTheme } from '../../composables/useTheme'
 
 interface BrandKit {
-  primary_color: string
-  secondary_color: string
+  accent_color: string
+  accent_bg: string
+  accent_border: string
+  text_color: string
+  text_heading_color: string
+  bg_color: string
+  border_color: string
+  code_bg_color: string
+  dark_accent_color: string
+  dark_accent_bg: string
+  dark_accent_border: string
+  dark_text_color: string
+  dark_text_heading_color: string
+  dark_bg_color: string
+  dark_border_color: string
+  dark_code_bg_color: string
+  font_family: string
+  heading_font: string
+  mono_font: string
+  base_font_size: string
   logo_url: string
   favicon_url: string
-  font_family: string
+  primary_color: string
+  secondary_color: string
 }
 
+const { applyTheme } = useTheme()
+
 const form = reactive<BrandKit>({
-  primary_color: '#2644ec',
-  secondary_color: '#08060d',
+  accent_color: '#2644ec',
+  accent_bg: '',
+  accent_border: '',
+  text_color: '#374151',
+  text_heading_color: '#111827',
+  bg_color: '#ffffff',
+  border_color: '#e5e7eb',
+  code_bg_color: '#f3f4f6',
+  dark_accent_color: '#2644ec',
+  dark_accent_bg: '',
+  dark_accent_border: '',
+  dark_text_color: '#d1d5db',
+  dark_text_heading_color: '#f9fafb',
+  dark_bg_color: '#111827',
+  dark_border_color: '#374151',
+  dark_code_bg_color: '#1f2937',
+  font_family: '',
+  heading_font: '',
+  mono_font: '',
+  base_font_size: '16px',
   logo_url: '',
   favicon_url: '',
-  font_family: '',
+  primary_color: '#2644ec',
+  secondary_color: '#08060d',
 })
 
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
+
+const previewStyles = computed(() => ({
+  background: form.bg_color || 'var(--bg)',
+  color: form.text_color || 'var(--text)',
+  borderColor: form.border_color || 'var(--border)',
+  '--preview-accent': form.accent_color || 'var(--accent)',
+  '--preview-code-bg': form.code_bg_color || 'var(--code-bg)',
+  '--preview-heading': form.text_heading_color || 'var(--text-h)',
+}))
 
 async function load() {
   loading.value = true
@@ -80,6 +247,7 @@ async function save() {
   try {
     await api.put('/api/v1/admin/brand-kit', form)
     success.value = true
+    applyTheme(form as Parameters<typeof applyTheme>[0])
     setTimeout(() => { success.value = false }, 3000)
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to save brand kit'
@@ -93,9 +261,46 @@ onMounted(load)
 .brand-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-width: 480px;
+  gap: 24px;
+  max-width: 560px;
   margin-top: 8px;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.dark-section {
+  background: #1a1a2e;
+  border-color: #374151;
+}
+
+.dark-section label {
+  color: #d1d5db;
+}
+
+.dark-section input[type="text"] {
+  background: #111827;
+  color: #f9fafb;
+  border-color: #374151;
+}
+
+.section-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  letter-spacing: -0.2px;
+}
+
+.dark-section .section-title {
+  color: #f9fafb;
 }
 
 .brand-form label {
@@ -106,13 +311,24 @@ onMounted(load)
   color: var(--text);
 }
 
-.brand-form input[type="text"] {
+.hint {
+  font-size: 11px;
+  opacity: 0.6;
+  font-weight: normal;
+}
+
+.brand-form input[type="text"],
+.brand-form select {
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text-h);
   padding: 8px 10px;
   border-radius: 4px;
   font-size: 14px;
+}
+
+.brand-form select {
+  cursor: pointer;
 }
 
 .color-row {
@@ -129,10 +345,45 @@ onMounted(load)
   padding: 2px;
   cursor: pointer;
   background: var(--bg);
+  flex-shrink: 0;
 }
 
 .color-text {
   flex: 1;
+}
+
+.preview {
+  padding: 16px;
+  border: 1px solid;
+  border-radius: 6px;
+}
+
+.preview h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--preview-heading, var(--text-h));
+}
+
+.preview p {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.preview code {
+  background: var(--preview-code-bg, var(--code-bg));
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.preview button {
+  background: var(--preview-accent, var(--accent));
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
 }
 
 .btn-primary {

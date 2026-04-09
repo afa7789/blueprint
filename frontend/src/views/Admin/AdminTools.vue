@@ -16,11 +16,12 @@
           <div v-for="tool in group" :key="tool.id" class="tool-card">
             <div class="card-header">
               <span class="tool-name">{{ tool.name }}</span>
-              <span class="status-dot" :class="pingStatus[tool.id] === 'up' ? 'dot-green' : pingStatus[tool.id] === 'down' ? 'dot-red' : 'dot-gray'"></span>
+              <span class="status-dot" :class="pingStatus[tool.id] === 'up' ? 'dot-green' : pingStatus[tool.id] === 'unconfigured' ? 'dot-yellow' : pingStatus[tool.id] === 'down' ? 'dot-red' : 'dot-gray'" :title="pingStatus[tool.id] || 'checking...'"></span>
             </div>
             <p class="tool-desc">{{ tool.description }}</p>
             <div class="card-footer">
-              <a v-if="tool.url" :href="tool.url" target="_blank" class="link-open">Open</a>
+              <a v-if="tool.url" :href="tool.url" target="_blank" class="link-open"><i class="fas fa-external-link-alt"></i> Open</a>
+              <span v-else class="link-disabled">No URL</span>
               <button @click="openEdit(tool)">Edit</button>
               <button class="btn-danger" @click="deleteTool(tool.id)">Delete</button>
             </div>
@@ -72,7 +73,7 @@ interface Tool {
 const tools = ref<Tool[]>([])
 const loading = ref(false)
 const error = ref('')
-const pingStatus = ref<Record<string, 'up' | 'down' | 'pending'>>({})
+const pingStatus = ref<Record<string, 'up' | 'down' | 'unconfigured' | 'pending'>>({})
 const showForm = ref(false)
 const formError = ref('')
 const editingId = ref<string | null>(null)
@@ -115,8 +116,8 @@ async function load() {
 function pingAll() {
   for (const tool of tools.value) {
     pingStatus.value[tool.id] = 'pending'
-    api.get(`/api/v1/admin/tools/${tool.id}/ping`)
-      .then(() => { pingStatus.value[tool.id] = 'up' })
+    api.get<{ status: string }>(`/api/v1/admin/tools/${tool.id}/ping`)
+      .then((res) => { pingStatus.value[tool.id] = res.status === 'unconfigured' ? 'unconfigured' : res.status === 'up' ? 'up' : 'down' })
       .catch(() => { pingStatus.value[tool.id] = 'down' })
   }
 }
@@ -228,6 +229,7 @@ onMounted(load)
 
 .dot-green { background: #22c55e; }
 .dot-red { background: #ef4444; }
+.dot-yellow { background: #f59e0b; }
 .dot-gray { background: #9ca3af; }
 
 .tool-desc {

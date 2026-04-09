@@ -4,9 +4,12 @@ import DynamicFooter from './components/common/DynamicFooter.vue'
 import UpdateToast from './components/common/UpdateToast.vue'
 import { useAuthStore } from './stores/auth'
 import { useRouter } from 'vue-router'
+import { useTheme } from './composables/useTheme'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { loadTheme } = useTheme()
+loadTheme()
 
 async function logout() {
   await auth.logout()

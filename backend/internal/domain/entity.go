@@ -156,13 +156,37 @@ type LinktreeItem struct {
 }
 
 type BrandKit struct {
-	ID             string    `json:"id"`
-	PrimaryColor   string    `json:"primary_color"`
-	SecondaryColor string    `json:"secondary_color"`
-	LogoURL        *string   `json:"logo_url"`
-	FaviconURL     *string   `json:"favicon_url"`
-	FontFamily     *string   `json:"font_family"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID               string    `json:"id"`
+	PrimaryColor     string    `json:"primary_color"`
+	SecondaryColor   string    `json:"secondary_color"`
+	AccentColor      string    `json:"accent_color"`
+	AccentBg         string    `json:"accent_bg"`
+	AccentBorder     string    `json:"accent_border"`
+	TextColor        string    `json:"text_color"`
+	TextHeadingColor string    `json:"text_heading_color"`
+	BgColor          string    `json:"bg_color"`
+	BorderColor      string    `json:"border_color"`
+	CodeBgColor      string    `json:"code_bg_color"`
+
+	// Dark mode
+	DarkAccentColor      string `json:"dark_accent_color"`
+	DarkAccentBg         string `json:"dark_accent_bg"`
+	DarkAccentBorder     string `json:"dark_accent_border"`
+	DarkTextColor        string `json:"dark_text_color"`
+	DarkTextHeadingColor string `json:"dark_text_heading_color"`
+	DarkBgColor          string `json:"dark_bg_color"`
+	DarkBorderColor      string `json:"dark_border_color"`
+	DarkCodeBgColor      string `json:"dark_code_bg_color"`
+
+	// Fonts
+	LogoURL      *string `json:"logo_url"`
+	FaviconURL   *string `json:"favicon_url"`
+	FontFamily   *string `json:"font_family"`
+	HeadingFont  *string `json:"heading_font"`
+	MonoFont     *string `json:"mono_font"`
+	BaseFontSize string  `json:"base_font_size"`
+
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type HealthCheck struct {
