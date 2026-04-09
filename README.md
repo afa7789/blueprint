@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="resources/banner.png" alt="Blueprint Banner" style="max-width: 80%; height: auto;">
+  <img src="resources/banner.png" alt="Blueprint Banner" style="max-width: 65%; height: auto;">
 </p>
 
 # Blueprint - Service Starter Kit
@@ -22,11 +22,13 @@ Full-stack starter kit: Go backend + Vue 3 frontend. Landing page, admin panel, 
 docker compose up -d
 ```
 
-| Service    | Port  |
-|------------|-------|
-| PostgreSQL | 5433  |
-| Redis      | 6380  |
-| pgweb      | 8083  |
+| Service    | Port | URL |
+|------------|------|-----|
+| PostgreSQL | 5433 | - |
+| Redis      | 6380 | - |
+| pgweb      | 8083 | http://localhost:8083 |
+| Prometheus | 9090 | http://localhost:9090 |
+| Grafana    | 3001 | http://localhost:3001 (admin/blueprint) |
 
 ### 2. Backend
 
