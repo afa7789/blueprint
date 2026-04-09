@@ -32,8 +32,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchMe() {
     try {
-      const data = await api.get<{ user: User }>('/api/v1/auth/me')
-      user.value = data.user
+      const data = await api.get<User>('/api/v1/auth/me')
+      user.value = data
     } catch {
       user.value = null
     }

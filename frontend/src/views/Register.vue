@@ -23,7 +23,7 @@ async function handleRegister() {
   loading.value = true
   try {
     await auth.register(email.value, password.value, name.value)
-    router.push('/')
+    router.push('/user/profile')
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Registration failed'
   } finally {

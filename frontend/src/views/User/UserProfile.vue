@@ -94,9 +94,9 @@ const form = ref({
 
 onMounted(async () => {
   try {
-    const data = await api.get<{ profile: Profile }>('/api/v1/user/profile')
-    profile.value = data.profile
-    const p = data.profile
+    const data = await api.get<Profile>('/api/v1/user/profile')
+    profile.value = data
+    const p = data
     form.value = {
       name: p.name ?? '',
       phone: p.phone ?? '',
