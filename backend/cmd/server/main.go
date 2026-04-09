@@ -211,9 +211,7 @@ func main() {
 	api.Post("/waitlist", waitlistHandler.AddToWaitlist)
 	api.Get("/waitlist", middleware.RequireAuth(cfg), middleware.RequireRole("admin"), waitlistHandler.GetWaitlist)
 
-	// Admin routes
-	admin := api.Group("/admin", middleware.RequireAuth(cfg), middleware.RequireRole("admin"))
-
+	// Admin routes (admin group already created above)
 	admin.Get("/users", adminHandler.ListUsers)
 	admin.Put("/users/:id/role", adminHandler.UpdateUserRole)
 	admin.Delete("/users/:id", adminHandler.DeleteUser)
