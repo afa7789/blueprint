@@ -3,6 +3,7 @@ import { RouterView } from 'vue-router'
 import DynamicFooter from './components/common/DynamicFooter.vue'
 import UpdateToast from './components/common/UpdateToast.vue'
 import AccessibilityBar from './components/common/AccessibilityBar.vue'
+import PwaInstallPrompt from './components/common/PwaInstallPrompt.vue'
 import { useAuthStore } from './stores/auth'
 import { useRouter } from 'vue-router'
 import { useTheme } from './composables/useTheme'
@@ -60,6 +61,7 @@ async function logout() {
     <DynamicFooter />
     <UpdateToast />
     <AccessibilityBar />
+    <PwaInstallPrompt />
   </div>
 </template>
 
