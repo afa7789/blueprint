@@ -17,7 +17,13 @@ async function handleLogin() {
   loading.value = true
   try {
     await auth.login(email.value, password.value)
-    router.push('/user/profile')
+    if (auth.isAdmin) {
+      router.push('/admin')
+    } else if (auth.isOperator) {
+      router.push('/operator')
+    } else {
+      router.push('/user/profile')
+    }
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Login failed'
   } finally {

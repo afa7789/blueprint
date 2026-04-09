@@ -70,8 +70,8 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ users: User[] }>(`/api/v1/admin/users?page=${page.value}&limit=${pageSize}`)
-    users.value = data.users
+    const data = await api.get<{ data: User[]; total: number }>(`/api/v1/admin/users?page=${page.value}&limit=${pageSize}`)
+    users.value = data.data || []
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load users'
   } finally {

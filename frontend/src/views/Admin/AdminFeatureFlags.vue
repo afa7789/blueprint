@@ -44,8 +44,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ features: Flag[] }>('/api/v1/admin/features')
-    flags.value = data.features
+    flags.value = await api.get<Flag[]>('/api/v1/admin/features')
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load feature flags'
   } finally {
