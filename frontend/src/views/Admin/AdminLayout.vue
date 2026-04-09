@@ -11,7 +11,7 @@
         <router-link to="/admin/features" @click="sidebarOpen = false"><i class="fas fa-toggle-on"></i> Feature Flags</router-link>
         <router-link to="/admin/banners" @click="sidebarOpen = false"><i class="fas fa-image"></i> Banners</router-link>
         <router-link to="/admin/linktree" @click="sidebarOpen = false"><i class="fas fa-link"></i> Linktree</router-link>
-        <router-link to="/admin/brand-kit" @click="sidebarOpen = false"><i class="fas fa-palette"></i> Brand Kit</router-link>
+        <router-link to="/admin/theme" @click="sidebarOpen = false"><i class="fas fa-palette"></i> Theme</router-link>
         <router-link to="/admin/email-groups" @click="sidebarOpen = false"><i class="fas fa-envelope"></i> Email Groups</router-link>
         <router-link to="/admin/blog" @click="sidebarOpen = false"><i class="fas fa-pen-to-square"></i> Blog</router-link>
         <router-link to="/admin/jobs" @click="sidebarOpen = false"><i class="fas fa-clock"></i> Jobs</router-link>

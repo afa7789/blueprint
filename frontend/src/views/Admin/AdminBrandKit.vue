@@ -1,11 +1,11 @@
 <template>
   <div>
     <HelperBox
-      title="Brand Kit"
-      description="Customize your brand identity. Colors, logo, favicon, and fonts are applied globally across the frontend."
+      title="Theme Settings"
+      description="Customize your application theme. Colors, fonts, and dark mode settings are applied globally."
       featureFlag="brand_kit_enabled"
     />
-    <h2>Brand Kit</h2>
+    <h2>Theme</h2>
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="success" class="success">Saved successfully.</div>
     <div v-if="loading">Loading...</div>
@@ -208,7 +208,7 @@
         </div>
       </section>
 
-      <button type="submit" class="btn-primary">Save Brand Kit</button>
+      <button type="submit" class="btn-primary">Save Theme</button>
     </form>
   </div>
 </template>

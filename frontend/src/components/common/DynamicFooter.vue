@@ -37,6 +37,10 @@ onMounted(async () => {
           <h3>Linktree</h3>
           <router-link to="/linktree">View Links</router-link>
         </div>
+        <div class="footer-section">
+          <h3>Resources</h3>
+          <router-link to="/brand-kit">Brand Kit</router-link>
+        </div>
       </div>
       <div class="footer-bottom">
         <div v-if="legalPages.length" class="legal-links">

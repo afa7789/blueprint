@@ -59,6 +59,11 @@ const routes = [
     component: () => import('../views/Linktree.vue')
   },
   {
+    path: '/brand-kit',
+    name: 'BrandKit',
+    component: () => import('../views/BrandKit.vue'),
+  },
+  {
     path: '/login',
     name: 'Login',
     component: Login
@@ -102,7 +107,7 @@ const routes = [
       { path: 'features', name: 'AdminFeatureFlags', component: () => import('../views/Admin/AdminFeatureFlags.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'banners', name: 'AdminBanners', component: () => import('../views/Admin/AdminBanners.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'linktree', name: 'AdminLinktree', component: () => import('../views/Admin/AdminLinktree.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
-      { path: 'brand-kit', name: 'AdminBrandKit', component: () => import('../views/Admin/AdminBrandKit.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
+      { path: 'theme', name: 'AdminTheme', component: () => import('../views/Admin/AdminBrandKit.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'email-groups', name: 'AdminEmailGroups', component: () => import('../views/Admin/AdminEmailGroups.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'blog', name: 'AdminBlog', component: () => import('../views/Admin/AdminBlog.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'jobs', name: 'AdminJobs', component: () => import('../views/Admin/AdminJobs.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
