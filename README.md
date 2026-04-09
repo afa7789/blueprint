@@ -345,79 +345,9 @@ All under `/api/v1/admin/` — users, products, categories, orders, coupons, ban
 
 24 tables across 13 migrations. All use UUID primary keys, JSONB for flexible data, and proper indexes. Migrations auto-run on server boot.
 
-## VPS Deployment
+## Deployment
 
-### 1. Provision VPS (Ubuntu 22.04+)
-
-```bash
-bash scripts/setup-vps-runner.sh user@your-vps
-```
-
-Installs: Go, Bun, PostgreSQL 16, Redis 7, Nginx + Brotli, Certbot, pgweb, Prometheus, Grafana, Node Exporter. Creates systemd units, directories, firewall, `.env.production`.
-
-### 2. Nginx + SSL
-
-```bash
-sudo bash /opt/blueprint/scripts/setup-nginx.sh your-domain.com
-```
-
-### 3. Monitoring
-
-```bash
-sudo bash /opt/blueprint/scripts/setup-monitoring.sh
-```
-
-### 4. Deploy
-
-```bash
-cp scripts/.deploy.env.example scripts/.deploy.env  # edit with VPS details
-make deploy           # Backend + frontend
-make deploy-backend   # Backend only
-make deploy-frontend  # Frontend only
-make deploy-dry       # Dry run
-```
-
-Zero-downtime: build locally -> rsync -> backup -> replace -> restart -> health check -> auto-rollback on failure.
-
-### 5. Operations (on VPS)
-
-```bash
-bash scripts/start.sh                   # Start all
-bash scripts/stop.sh                    # Stop all
-bash scripts/restart.sh                 # Restart all
-bash scripts/rollback.sh                # Rollback to previous version
-bash scripts/health.sh                  # 6 checks, JSON output
-bash scripts/health.sh --telegram       # + Telegram alert on failure
-bash scripts/backup.sh                  # pg_dump + retention 7d/4w/12m
-bash scripts/monitor.sh                 # Full monitoring (for cron)
-bash scripts/check-perf.sh domain.com   # Brotli, gzip, HTTP/2, headers
-```
-
-### 6. Cron
-
-```bash
-crontab scripts/crontab.example   # backup 2AM, monitor 5min, SSL weekly
-```
-
-### Scripts Reference
-
-```
-scripts/
-  setup-vps.sh / setup-vps-runner.sh   # VPS provisioning
-  install.sh                           # Lightweight deps installer
-  setup-nginx.sh                       # Nginx + SSL + Brotli
-  setup-monitoring.sh                  # Grafana + Prometheus
-  deploy.sh                            # Zero-downtime deploy
-  start.sh / stop.sh / restart.sh      # Service control
-  rollback.sh                          # Rollback
-  health.sh / monitor.sh              # Health + monitoring
-  backup.sh                            # DB backup + retention
-  check-perf.sh                        # Performance audit
-  crontab.example                      # Cron template
-  prometheus.yml                       # Local Prometheus config
-  .deploy.env.example                  # Deploy config template
-  systemd/                             # Systemd unit files
-```
+See [DEPLOY.md](DEPLOY.md) for the full deployment guide: VPS provisioning, Nginx + SSL, Grafana/Prometheus, zero-downtime deploy, backup, monitoring, and all operational scripts.
 
 ## License
 
