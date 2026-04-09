@@ -293,7 +293,7 @@ const doneFeatures = categories.value.reduce((sum, c) => sum + c.features.filter
       <WaitlistForm />
       <div class="hero-links">
         <a href="https://github.com/afa7789/blueprint" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
-          GitHub
+          <i class="fab fa-github"></i> GitHub
         </a>
         <router-link to="/register" class="btn btn-primary">Get Started</router-link>
       </div>
