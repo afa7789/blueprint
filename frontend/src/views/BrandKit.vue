@@ -85,12 +85,30 @@ function downloadAsset(url: string, filename: string) {
           </div>
 
           <div class="bk-asset-card">
+            <div class="bk-asset-preview bk-asset-preview--light">
+              <img src="/icon.svg" alt="App Icon" class="bk-icon-img" />
+            </div>
+            <div class="bk-asset-info">
+              <span class="bk-asset-name">App Icon (Favicon)</span>
+              <span class="bk-asset-desc">Flat icon with color background. Used as favicon and app icon.</span>
+              <div class="bk-asset-actions">
+                <button class="bk-btn" @click="downloadAsset('/icon.svg', 'blueprint-icon.svg')">SVG</button>
+                <button class="bk-btn" @click="downloadAsset('/icon.png', 'blueprint-icon.png')">PNG</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bk-asset-card">
             <div class="bk-asset-preview bk-asset-preview--dark">
               <img src="/inverted-icon.svg" alt="Inverted Icon" class="bk-icon-img" />
             </div>
             <div class="bk-asset-info">
               <span class="bk-asset-name">Inverted Icon</span>
-              <button class="bk-btn" @click="downloadAsset('/inverted-icon.svg', 'inverted-icon.svg')">Download SVG</button>
+              <span class="bk-asset-desc">White version for dark backgrounds.</span>
+              <div class="bk-asset-actions">
+                <button class="bk-btn" @click="downloadAsset('/inverted-icon.svg', 'blueprint-inverted.svg')">SVG</button>
+                <button class="bk-btn" @click="downloadAsset('/inverted-icon.png', 'blueprint-inverted.png')">PNG</button>
+              </div>
             </div>
           </div>
 
@@ -100,7 +118,24 @@ function downloadAsset(url: string, filename: string) {
             </div>
             <div class="bk-asset-info">
               <span class="bk-asset-name">Banner</span>
-              <button class="bk-btn" @click="downloadAsset('/banner-thin.svg', 'banner-thin.svg')">Download SVG</button>
+              <span class="bk-asset-desc">Full wordmark banner for headers and README.</span>
+              <div class="bk-asset-actions">
+                <button class="bk-btn" @click="downloadAsset('/banner-thin.svg', 'blueprint-banner.svg')">SVG</button>
+                <button class="bk-btn" @click="downloadAsset('/banner-thin.png', 'blueprint-banner.png')">PNG</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bk-asset-card">
+            <div class="bk-asset-preview bk-asset-preview--light">
+              <img src="/favicon.svg" alt="Favicon" class="bk-icon-img" />
+            </div>
+            <div class="bk-asset-info">
+              <span class="bk-asset-name">Favicon (SVG)</span>
+              <span class="bk-asset-desc">Optimized SVG favicon for modern browsers.</span>
+              <div class="bk-asset-actions">
+                <button class="bk-btn" @click="downloadAsset('/favicon.svg', 'blueprint-favicon.svg')">SVG</button>
+              </div>
             </div>
           </div>
         </div>
@@ -324,6 +359,18 @@ function downloadAsset(url: string, filename: string) {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-h);
+}
+
+.bk-asset-desc {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.bk-asset-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .bk-btn {
