@@ -128,13 +128,14 @@ function downloadAsset(url: string, filename: string) {
 
           <div class="bk-asset-card">
             <div class="bk-asset-preview bk-asset-preview--light">
-              <img src="/favicon.svg" alt="Favicon" class="bk-icon-img" />
+              <img src="/icon.svg" alt="Favicon" class="bk-icon-img" />
             </div>
             <div class="bk-asset-info">
-              <span class="bk-asset-name">Favicon (SVG)</span>
-              <span class="bk-asset-desc">Optimized SVG favicon for modern browsers.</span>
+              <span class="bk-asset-name">Favicon</span>
+              <span class="bk-asset-desc">Flat icon with color background — used as browser favicon.</span>
               <div class="bk-asset-actions">
-                <button class="bk-btn" @click="downloadAsset('/favicon.svg', 'blueprint-favicon.svg')">SVG</button>
+                <button class="bk-btn" @click="downloadAsset('/icon.svg', 'blueprint-favicon.svg')">SVG</button>
+                <button class="bk-btn" @click="downloadAsset('/icon.png', 'blueprint-favicon.png')">PNG</button>
               </div>
             </div>
           </div>
