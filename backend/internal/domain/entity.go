@@ -87,6 +87,7 @@ type Order struct {
 	PaymentID       *string         `json:"payment_id"`
 	ShippingAddress json.RawMessage `json:"shipping_address"`
 	TrackingCode    *string         `json:"tracking_code"`
+	ReceiptURL      *string         `json:"receipt_url"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
 }

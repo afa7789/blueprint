@@ -12,6 +12,7 @@
         <option value="shipped">Shipped</option>
         <option value="delivered">Delivered</option>
         <option value="cancelled">Cancelled</option>
+        <option value="awaiting_approval">Awaiting PIX Approval</option>
       </select>
     </div>
 
@@ -41,8 +42,25 @@
           </td>
           <td>{{ formatDate(order.created_at) }}</td>
           <td class="actions">
+            <a
+              v-if="order.receipt_url"
+              :href="order.receipt_url"
+              target="_blank"
+              class="btn-link"
+            >View Receipt</a>
+            <button
+              v-if="order.status === 'awaiting_approval'"
+              class="btn btn-approve"
+              @click="approvePix(order)"
+            >Approve PIX</button>
+            <button
+              v-if="order.status === 'awaiting_approval'"
+              class="btn btn-reject"
+              @click="rejectPix(order)"
+            >Reject</button>
             <select v-model="order.status" @change="updateStatus(order)" class="input input-sm status-select">
               <option value="pending">Pending</option>
+              <option value="awaiting_approval">Awaiting Approval</option>
               <option value="paid">Paid</option>
               <option value="shipped">Shipped</option>
               <option value="delivered">Delivered</option>
@@ -65,6 +83,8 @@ interface Order {
   total: number
   status: string
   created_at: string
+  payment_method?: string | null
+  receipt_url?: string | null
 }
 
 const orders = ref<Order[]>([])
@@ -96,6 +116,24 @@ async function updateStatus(order: Order) {
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to update status'
     await fetchOrders()
+  }
+}
+
+async function approvePix(order: Order) {
+  try {
+    await api.put(`/api/v1/admin/orders/${order.id}/approve-pix`)
+    order.status = 'paid'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Failed to approve PIX'
+  }
+}
+
+async function rejectPix(order: Order) {
+  try {
+    await api.put(`/api/v1/admin/orders/${order.id}/status`, { status: 'cancelled' })
+    order.status = 'cancelled'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Failed to reject order'
   }
 }
 
@@ -188,6 +226,7 @@ onMounted(fetchOrders)
 .status-shipped { background: rgba(59, 130, 246, 0.15); color: #2563eb; }
 .status-delivered { background: rgba(34, 197, 94, 0.2); color: #15803d; }
 .status-cancelled { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+.status-awaiting_approval { background: rgba(168, 85, 247, 0.15); color: #9333ea; }
 
 .actions {
   display: flex;
@@ -196,6 +235,41 @@ onMounted(fetchOrders)
 
 .status-select {
   width: auto;
+}
+
+.btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.btn-approve {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+  border: 1px solid #16a34a;
+}
+
+.btn-approve:hover {
+  background: rgba(34, 197, 94, 0.3);
+}
+
+.btn-reject {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid #dc2626;
+}
+
+.btn-reject:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.btn-link {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .input {

@@ -338,21 +338,21 @@ func NewOrderRepo(pool *pgxpool.Pool) domain.OrderRepository { return &orderRepo
 func (r *orderRepo) FindByID(ctx context.Context, id string) (*domain.Order, error) {
 	o := &domain.Order{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id,user_id,status,total,payment_method,payment_id,shipping_address,tracking_code,created_at,updated_at FROM orders WHERE id=$1`, id).
-		Scan(&o.ID, &o.UserID, &o.Status, &o.Total, &o.PaymentMethod, &o.PaymentID, &o.ShippingAddress, &o.TrackingCode, &o.CreatedAt, &o.UpdatedAt)
+		`SELECT id,user_id,status,total,payment_method,payment_id,shipping_address,tracking_code,receipt_url,created_at,updated_at FROM orders WHERE id=$1`, id).
+		Scan(&o.ID, &o.UserID, &o.Status, &o.Total, &o.PaymentMethod, &o.PaymentID, &o.ShippingAddress, &o.TrackingCode, &o.ReceiptURL, &o.CreatedAt, &o.UpdatedAt)
 	return o, err
 }
 
 func (r *orderRepo) FindByUser(ctx context.Context, userID string, offset, limit int) ([]domain.Order, int, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id,user_id,status,total,payment_method,payment_id,shipping_address,tracking_code,created_at,updated_at FROM orders WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+		`SELECT id,user_id,status,total,payment_method,payment_id,shipping_address,tracking_code,receipt_url,created_at,updated_at FROM orders WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
 		userID, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 	orders, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (domain.Order, error) {
 		var o domain.Order
-		return o, row.Scan(&o.ID, &o.UserID, &o.Status, &o.Total, &o.PaymentMethod, &o.PaymentID, &o.ShippingAddress, &o.TrackingCode, &o.CreatedAt, &o.UpdatedAt)
+		return o, row.Scan(&o.ID, &o.UserID, &o.Status, &o.Total, &o.PaymentMethod, &o.PaymentID, &o.ShippingAddress, &o.TrackingCode, &o.ReceiptURL, &o.CreatedAt, &o.UpdatedAt)
 	})
 	if err != nil {
 		return nil, 0, err
@@ -397,22 +397,22 @@ func (r *orderRepo) UpdateStatus(ctx context.Context, id, status string) error {
 
 func (r *orderRepo) ListByStatus(ctx context.Context, status string) ([]domain.Order, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id,user_id,status,total,payment_method,payment_id,shipping_address,tracking_code,created_at,updated_at FROM orders WHERE status=$1 ORDER BY created_at DESC`,
+		`SELECT id,user_id,status,total,payment_method,payment_id,shipping_address,tracking_code,receipt_url,created_at,updated_at FROM orders WHERE status=$1 ORDER BY created_at DESC`,
 		status)
 	if err != nil {
 		return nil, err
 	}
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (domain.Order, error) {
 		var o domain.Order
-		return o, row.Scan(&o.ID, &o.UserID, &o.Status, &o.Total, &o.PaymentMethod, &o.PaymentID, &o.ShippingAddress, &o.TrackingCode, &o.CreatedAt, &o.UpdatedAt)
+		return o, row.Scan(&o.ID, &o.UserID, &o.Status, &o.Total, &o.PaymentMethod, &o.PaymentID, &o.ShippingAddress, &o.TrackingCode, &o.ReceiptURL, &o.CreatedAt, &o.UpdatedAt)
 	})
 }
 
 func (r *orderRepo) FindByPaymentID(ctx context.Context, paymentID string) (*domain.Order, error) {
 	o := &domain.Order{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id,user_id,status,total,payment_method,payment_id,shipping_address,tracking_code,created_at,updated_at FROM orders WHERE payment_id=$1`, paymentID).
-		Scan(&o.ID, &o.UserID, &o.Status, &o.Total, &o.PaymentMethod, &o.PaymentID, &o.ShippingAddress, &o.TrackingCode, &o.CreatedAt, &o.UpdatedAt)
+		`SELECT id,user_id,status,total,payment_method,payment_id,shipping_address,tracking_code,receipt_url,created_at,updated_at FROM orders WHERE payment_id=$1`, paymentID).
+		Scan(&o.ID, &o.UserID, &o.Status, &o.Total, &o.PaymentMethod, &o.PaymentID, &o.ShippingAddress, &o.TrackingCode, &o.ReceiptURL, &o.CreatedAt, &o.UpdatedAt)
 	return o, err
 }
 
@@ -423,6 +423,11 @@ func (r *orderRepo) UpdatePayment(ctx context.Context, id, paymentMethod, paymen
 
 func (r *orderRepo) AddTrackingCode(ctx context.Context, id, code string) error {
 	_, err := r.pool.Exec(ctx, `UPDATE orders SET tracking_code=$1,updated_at=NOW() WHERE id=$2`, code, id)
+	return err
+}
+
+func (r *orderRepo) UpdateReceiptURL(ctx context.Context, id, url string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE orders SET receipt_url=$1,updated_at=NOW() WHERE id=$2`, url, id)
 	return err
 }
 

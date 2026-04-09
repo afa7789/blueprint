@@ -23,6 +23,12 @@
             <td>${{ (order.total / 100).toFixed(2) }}</td>
             <td>{{ formatDate(order.created_at) }}</td>
             <td class="actions-cell">
+              <a
+                v-if="order.receipt_url"
+                :href="order.receipt_url"
+                target="_blank"
+                class="receipt-link"
+              >View Receipt</a>
               <template v-if="shippingOrderId === order.id">
                 <div class="inline-form">
                   <input
@@ -71,6 +77,7 @@ interface Order {
   total: number
   created_at: string
   payment_method: string
+  receipt_url?: string | null
 }
 
 const orders = ref<Order[]>([])
@@ -236,6 +243,12 @@ onMounted(load)
   color: #ef4444;
   font-size: 13px;
   width: 100%;
+}
+
+.receipt-link {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .empty {

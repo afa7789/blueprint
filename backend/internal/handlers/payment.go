@@ -121,6 +121,45 @@ func (h *PaymentHandler) CreatePixPayment(c *fiber.Ctx) error {
 	})
 }
 
+func (h *PaymentHandler) UploadPixReceipt(c *fiber.Ctx) error {
+	orderID := c.Params("order_id")
+	userID, _ := c.Locals("user_id").(string)
+
+	order, err := h.orders.FindByID(c.Context(), orderID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "order not found")
+	}
+	if order.UserID != nil && *order.UserID != userID {
+		return fiber.NewError(fiber.StatusForbidden, "not your order")
+	}
+	if order.PaymentMethod == nil || *order.PaymentMethod != "pix_manual" {
+		return fiber.NewError(fiber.StatusBadRequest, "not a PIX manual order")
+	}
+
+	file, err := c.FormFile("receipt")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "receipt file is required")
+	}
+
+	url, err := UploadFile(file, "receipts", h.cfg)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
+	}
+
+	if err := h.orders.UpdateReceiptURL(c.Context(), orderID, url); err != nil {
+		return err
+	}
+	if err := h.orders.UpdateStatus(c.Context(), orderID, "awaiting_approval"); err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"message":     "receipt uploaded, awaiting admin approval",
+		"receipt_url": url,
+		"order_id":    orderID,
+	})
+}
+
 func (h *PaymentHandler) ApprovePixPayment(c *fiber.Ctx) error {
 	orderID := c.Params("id")
 	order, err := h.orders.FindByID(c.Context(), orderID)

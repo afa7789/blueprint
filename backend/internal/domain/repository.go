@@ -58,6 +58,7 @@ type OrderRepository interface {
 	UpdatePayment(ctx context.Context, id, paymentMethod, paymentID string) error
 	ListByStatus(ctx context.Context, status string) ([]Order, error)
 	AddTrackingCode(ctx context.Context, id, code string) error
+	UpdateReceiptURL(ctx context.Context, id, url string) error
 }
 
 type CouponRepository interface {

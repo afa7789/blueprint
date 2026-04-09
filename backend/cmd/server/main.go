@@ -286,6 +286,7 @@ func main() {
 	api.Post("/payments/stripe", middleware.RequireAuth(cfg), paymentHandler.CreateStripePayment)
 	api.Post("/payments/stripe/webhook", paymentHandler.StripeWebhook)
 	api.Post("/payments/pix", middleware.RequireAuth(cfg), paymentHandler.CreatePixPayment)
+	api.Post("/payments/pix/:order_id/receipt", middleware.RequireAuth(cfg), paymentHandler.UploadPixReceipt)
 	admin.Put("/orders/:id/approve-pix", paymentHandler.ApprovePixPayment)
 
 	// Coupon — public validate

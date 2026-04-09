@@ -62,10 +62,30 @@
           <template v-if="orderResult.method === 'stripe'">
             <p>Stripe payment integration coming soon. Order created with ID: <span class="mono">{{ orderResult.orderId }}</span></p>
           </template>
-          <template v-else-if="orderResult.method === 'pix_auto' || orderResult.method === 'pix_manual'">
+          <template v-else-if="orderResult.method === 'pix_auto'">
             <p class="pix-title">PIX Payment</p>
             <p class="pix-qr">[QR Code Placeholder]</p>
             <p class="pix-txid">Transaction ID: <span class="mono">{{ orderResult.txId }}</span></p>
+          </template>
+          <template v-else-if="orderResult.method === 'pix_manual'">
+            <p class="pix-title">PIX Payment</p>
+            <p>Transfer the order total via PIX, then upload your payment receipt below.</p>
+            <p class="pix-txid">Order ID: <code class="mono">{{ orderResult.orderId }}</code></p>
+            <p class="pix-txid">Total: R$ {{ (cart.total / 100).toFixed(2) }}</p>
+
+            <div v-if="!receiptUploaded" class="receipt-upload">
+              <h4>Upload Payment Receipt</h4>
+              <input type="file" accept="image/*,.pdf" @change="handleReceiptFile" class="input" />
+              <button v-if="receiptFile" @click="uploadReceipt" :disabled="uploadingReceipt" class="btn btn-primary" style="margin-top:10px;">
+                {{ uploadingReceipt ? 'Uploading...' : 'Submit Receipt' }}
+              </button>
+              <p v-if="receiptError" class="receipt-error">{{ receiptError }}</p>
+            </div>
+
+            <div v-else class="receipt-success">
+              <p style="color:#22c55e;font-weight:600;">Receipt uploaded! Your order is awaiting admin approval.</p>
+              <p>You will be notified when your payment is confirmed.</p>
+            </div>
           </template>
         </div>
 
@@ -113,6 +133,10 @@ const paymentMethod = ref('')
 const submitting = ref(false)
 const orderError = ref('')
 const orderResult = ref<{ method: string; orderId: string; txId?: string } | null>(null)
+const receiptFile = ref<File | null>(null)
+const uploadingReceipt = ref(false)
+const receiptUploaded = ref(false)
+const receiptError = ref('')
 
 const allPaymentMethods = [
   { value: 'stripe', label: 'Credit Card (Stripe)', flag: 'payments_stripe' },
@@ -133,6 +157,33 @@ onMounted(async () => {
     paymentMethod.value = paymentMethods.value[0].value
   }
 })
+
+function handleReceiptFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  receiptFile.value = input.files?.[0] || null
+}
+
+async function uploadReceipt() {
+  if (!receiptFile.value || !orderResult.value) return
+  uploadingReceipt.value = true
+  receiptError.value = ''
+  try {
+    const formData = new FormData()
+    formData.append('receipt', receiptFile.value)
+    const API_URL = import.meta.env.VITE_API_URL ?? ''
+    const res = await fetch(`${API_URL}/api/v1/payments/pix/${orderResult.value.orderId}/receipt`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    })
+    if (!res.ok) throw new Error('Upload failed')
+    receiptUploaded.value = true
+  } catch (e: unknown) {
+    receiptError.value = e instanceof Error ? e.message : 'Failed to upload receipt'
+  } finally {
+    uploadingReceipt.value = false
+  }
+}
 
 async function placeOrder() {
   submitting.value = true
@@ -385,5 +436,31 @@ async function placeOrder() {
 .mono {
   font-family: var(--mono);
   font-size: 13px;
+}
+
+.receipt-upload {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.receipt-upload h4 {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--text-h);
+}
+
+.receipt-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.receipt-success {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #22c55e;
+  border-radius: 6px;
+  background: rgba(34, 197, 94, 0.05);
 }
 </style>
