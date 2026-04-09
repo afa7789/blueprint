@@ -1,8 +1,12 @@
 <template>
   <div class="admin-products">
+    <HelperBox title="Products" description="Manage your store products. Add individually or bulk import via CSV." featureFlag="store_enabled" />
     <div class="page-header">
-      <h1>Products</h1>
-      <button @click="openCreate" class="btn btn-primary">+ New Product</button>
+      <h1>Products ({{ products.length }})</h1>
+      <div class="header-actions">
+        <button @click="showImport = true" class="btn"><i class="fas fa-file-csv"></i> Import CSV</button>
+        <button @click="openCreate" class="btn btn-primary"><i class="fas fa-plus"></i> Add Product</button>
+      </div>
     </div>
 
     <div class="filter-row">
@@ -32,9 +36,9 @@
         <tr v-for="product in filteredProducts" :key="product.id">
           <td>{{ product.name }}</td>
           <td>{{ categoryName(product.category_id) }}</td>
-          <td>${{ (product.price / 100).toFixed(2) }}</td>
+          <td>R$ {{ product.price.toFixed(2).replace('.', ',') }}</td>
           <td>{{ product.stock }}</td>
-          <td><span class="status-badge" :class="product.active ? 'status-active' : 'status-inactive'">{{ product.active ? 'Active' : 'Inactive' }}</span></td>
+          <td><span class="status-badge" :class="product.is_active ? 'status-active' : 'status-inactive'">{{ product.is_active ? 'Active' : 'Inactive' }}</span></td>
           <td class="actions">
             <button @click="openEdit(product)" class="btn btn-ghost btn-sm">Edit</button>
             <button @click="deleteProduct(product.id)" class="btn btn-danger btn-sm">Delete</button>
@@ -60,8 +64,8 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Price (cents)</label>
-            <input v-model.number="form.price" type="number" class="input" placeholder="1000" />
+            <label>Price (R$)</label>
+            <input v-model="form.priceDisplay" type="text" class="input" placeholder="25,00" />
           </div>
           <div class="form-group">
             <label>Stock</label>
@@ -99,12 +103,31 @@
         </div>
       </div>
     </div>
+    <!-- CSV Import Modal -->
+    <div v-if="showImport" class="modal-overlay" @click.self="showImport = false">
+      <div class="modal">
+        <h2><i class="fas fa-file-csv"></i> Import Products from CSV</h2>
+        <p class="import-hint">Format: <code>name,description,price(centavos)</code> — one product per line</p>
+        <pre class="import-example">Cerveja artesanal,IPA local,1500
+Camiseta Blueprint,Tamanho único,3500</pre>
+        <textarea v-model="csvText" class="input textarea" rows="8" placeholder="Paste CSV here..."></textarea>
+        <p v-if="importError" class="field-error">{{ importError }}</p>
+        <p v-if="importSuccess" class="import-success">{{ importSuccess }}</p>
+        <div class="modal-actions">
+          <button @click="showImport = false" class="btn btn-ghost">Cancel</button>
+          <button @click="importCSV" class="btn btn-primary" :disabled="!csvText.trim() || importing">
+            {{ importing ? 'Importing...' : 'Import' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface Category {
   id: string
@@ -119,8 +142,11 @@ interface Product {
   stock: number
   category_id: string | null
   image_url: string | null
-  active: boolean
+  images: string | null
+  is_active: boolean
+  emoji?: string
 }
+
 
 const products = ref<Product[]>([])
 const categories = ref<Category[]>([])
@@ -132,10 +158,16 @@ const formSubmitting = ref(false)
 const formError = ref('')
 const selectedCategory = ref('')
 
+const showImport = ref(false)
+const csvText = ref('')
+const importError = ref('')
+const importSuccess = ref('')
+const importing = ref(false)
+
 const form = ref({
   name: '',
   description: '',
-  price: 0,
+  priceDisplay: '',
   stock: 0,
   category_id: '',
   image_url: '',
@@ -171,7 +203,7 @@ async function fetchData() {
 
 function openCreate() {
   editingProduct.value = null
-  form.value = { name: '', description: '', price: 0, stock: 0, category_id: '', image_url: '', active: true }
+  form.value = { name: '', description: '', priceDisplay: '', stock: 0, category_id: '', image_url: '', active: true }
   formError.value = ''
   showForm.value = true
 }
@@ -181,11 +213,11 @@ function openEdit(product: Product) {
   form.value = {
     name: product.name,
     description: product.description,
-    price: product.price,
+    priceDisplay: product.price.toFixed(2).replace('.', ','),
     stock: product.stock,
     category_id: product.category_id || '',
     image_url: product.image_url || '',
-    active: product.active,
+    active: product.is_active,
   }
   formError.value = ''
   showForm.value = true
@@ -196,11 +228,24 @@ function closeForm() {
   editingProduct.value = null
 }
 
+function parsePrice(display: string): number {
+  return parseFloat(display.replace(',', '.')) || 0
+}
+
 async function submitForm() {
   formSubmitting.value = true
   formError.value = ''
   try {
-    const payload = { ...form.value, category_id: form.value.category_id || null, image_url: form.value.image_url || null }
+    const price = parsePrice(form.value.priceDisplay)
+    const payload = {
+      name: form.value.name,
+      description: form.value.description || null,
+      price,
+      stock: form.value.stock,
+      is_active: form.value.active,
+      category_id: form.value.category_id || null,
+      images: '[]',
+    }
     if (editingProduct.value) {
       await api.put(`/api/v1/admin/products/${editingProduct.value.id}`, payload)
     } else {
@@ -213,6 +258,42 @@ async function submitForm() {
   } finally {
     formSubmitting.value = false
   }
+}
+
+async function importCSV() {
+  importing.value = true
+  importError.value = ''
+  importSuccess.value = ''
+  const lines = csvText.value.trim().split('\n').filter(l => l.trim())
+  let imported = 0
+  const errors: string[] = []
+
+  for (const line of lines) {
+    const parts = line.split(',')
+    if (parts.length < 3) { errors.push(`Invalid line: ${line}`); continue }
+    const [name, description, priceStr] = parts
+    const priceCents = parseInt(priceStr.trim())
+    if (isNaN(priceCents)) { errors.push(`Invalid price: ${line}`); continue }
+    try {
+      await api.post('/api/v1/admin/products', {
+        name: name.trim(),
+        description: description.trim() || null,
+        price: priceCents / 100,
+        stock: 0,
+        is_active: true,
+        images: '[]',
+      })
+      imported++
+    } catch { errors.push(`Failed: ${name}`) }
+  }
+
+  if (imported > 0) {
+    importSuccess.value = `${imported} product(s) imported.`
+    await fetchData()
+    csvText.value = ''
+  }
+  if (errors.length) importError.value = errors.join('; ')
+  importing.value = false
 }
 
 async function deleteProduct(id: string) {
@@ -434,5 +515,39 @@ onMounted(fetchData)
   margin-top: 24px;
   border-top: 1px solid var(--border);
   padding-top: 20px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.import-hint {
+  font-size: 13px;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.import-hint code {
+  font-size: 12px;
+  padding: 2px 6px;
+  background: var(--code-bg);
+  border-radius: 3px;
+}
+
+.import-example {
+  font-size: 12px;
+  background: var(--code-bg);
+  padding: 12px;
+  border-radius: 6px;
+  margin: 0 0 12px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.import-success {
+  color: #16a34a;
+  font-size: 13px;
 }
 </style>
