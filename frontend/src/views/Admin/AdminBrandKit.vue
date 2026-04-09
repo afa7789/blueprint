@@ -9,16 +9,54 @@
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="success" class="success">Saved successfully.</div>
     <div v-if="loading">Loading...</div>
-    <form v-else class="brand-form" @submit.prevent="save">
+
+    <!-- Active Theme Summary Card -->
+    <div v-if="!loading" class="theme-summary-card">
+      <div class="theme-summary-top">
+        <div v-if="form.logo_url" class="theme-logo">
+          <img :src="form.logo_url" alt="Logo" class="theme-logo-img" />
+        </div>
+        <div class="theme-summary-info">
+          <div class="theme-swatches">
+            <div class="swatch-item" v-for="swatch in colorSwatches" :key="swatch.label">
+              <div class="swatch-circle" :style="{ background: swatch.value }"></div>
+              <span class="swatch-label">{{ swatch.label }}</span>
+            </div>
+          </div>
+          <div class="theme-font-previews">
+            <div class="font-preview-item" :style="{ fontFamily: form.font_family || 'inherit' }">
+              <span class="font-tag">Body</span> The quick brown fox jumps over the lazy dog
+            </div>
+            <div class="font-preview-item font-preview-heading" :style="{ fontFamily: form.heading_font || 'inherit' }">
+              <span class="font-tag">Heading</span> The quick brown fox jumps over the lazy dog
+            </div>
+            <div class="font-preview-item font-preview-mono" :style="{ fontFamily: form.mono_font || 'monospace' }">
+              <span class="font-tag">Mono</span> The quick brown fox jumps over the lazy dog
+            </div>
+          </div>
+          <div class="theme-meta">
+            <span class="theme-meta-item">Base size: <strong>{{ form.base_font_size || '16px' }}</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form v-if="!loading" class="brand-form" @submit.prevent="save">
 
       <!-- Section 1: Brand -->
       <section class="form-section">
         <h3 class="section-title">Brand</h3>
         <label>Logo URL
           <input v-model="form.logo_url" type="text" placeholder="https://example.com/logo.png" />
+          <div v-if="form.logo_url" class="url-preview">
+            <img :src="form.logo_url" alt="Logo preview" class="logo-preview-img" @error="onLogoError" />
+          </div>
         </label>
         <label>Favicon URL
           <input v-model="form.favicon_url" type="text" placeholder="https://example.com/favicon.ico" />
+          <div v-if="form.favicon_url" class="url-preview">
+            <img :src="form.favicon_url" alt="Favicon preview" class="favicon-preview-img" @error="onFaviconError" />
+          </div>
         </label>
       </section>
 
@@ -121,12 +159,15 @@
         <h3 class="section-title">Typography</h3>
         <label>Font Family
           <input v-model="form.font_family" type="text" placeholder="Inter, sans-serif" />
+          <div v-if="form.font_family" class="inline-font-preview" :style="{ fontFamily: form.font_family }">The quick brown fox jumps over the lazy dog</div>
         </label>
         <label>Heading Font
           <input v-model="form.heading_font" type="text" placeholder="Inter, sans-serif" />
+          <div v-if="form.heading_font" class="inline-font-preview inline-font-preview--heading" :style="{ fontFamily: form.heading_font }">The quick brown fox jumps over the lazy dog</div>
         </label>
         <label>Monospace Font
           <input v-model="form.mono_font" type="text" placeholder="JetBrains Mono, monospace" />
+          <div v-if="form.mono_font" class="inline-font-preview inline-font-preview--mono" :style="{ fontFamily: form.mono_font }">The quick brown fox jumps over the lazy dog</div>
         </label>
         <label>Base Font Size
           <select v-model="form.base_font_size">
@@ -218,6 +259,22 @@ const form = reactive<BrandKit>({
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
+
+const colorSwatches = computed(() => [
+  { label: 'Accent', value: form.accent_color || '#2644ec' },
+  { label: 'Text', value: form.text_color || '#374151' },
+  { label: 'Bg', value: form.bg_color || '#ffffff' },
+  { label: 'Border', value: form.border_color || '#e5e7eb' },
+  { label: 'Code Bg', value: form.code_bg_color || '#f3f4f6' },
+])
+
+function onLogoError(e: Event) {
+  (e.target as HTMLImageElement).style.display = 'none'
+}
+
+function onFaviconError(e: Event) {
+  (e.target as HTMLImageElement).style.display = 'none'
+}
 
 const previewStyles = computed(() => ({
   background: form.bg_color || 'var(--bg)',
@@ -407,5 +464,165 @@ onMounted(load)
   color: #48bb78;
   font-size: 14px;
   margin-bottom: 8px;
+}
+
+/* Theme Summary Card */
+.theme-summary-card {
+  max-width: 560px;
+  margin: 8px 0 20px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.theme-summary-top {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.theme-logo {
+  flex-shrink: 0;
+}
+
+.theme-logo-img {
+  max-height: 48px;
+  max-width: 120px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.theme-summary-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.theme-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.swatch-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.swatch-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.swatch-label {
+  font-size: 10px;
+  color: var(--text);
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.theme-font-previews {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.font-preview-item {
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.font-preview-item.font-preview-heading {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.font-preview-item.font-preview-mono {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.font-tag {
+  font-size: 10px;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.5;
+  flex-shrink: 0;
+  min-width: 48px;
+}
+
+.theme-meta {
+  display: flex;
+  gap: 12px;
+}
+
+.theme-meta-item {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+/* URL image previews */
+.url-preview {
+  margin-top: 4px;
+}
+
+.logo-preview-img {
+  max-height: 48px;
+  max-width: 200px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  padding: 4px;
+  background: var(--bg);
+}
+
+.favicon-preview-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  padding: 2px;
+  background: var(--bg);
+}
+
+/* Inline font previews in Typography section */
+.inline-font-preview {
+  font-size: 13px;
+  color: var(--text);
+  padding: 6px 8px;
+  background: var(--code-bg, #f3f4f6);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inline-font-preview--heading {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.inline-font-preview--mono {
+  font-size: 12px;
 }
 </style>

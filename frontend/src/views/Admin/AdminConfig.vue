@@ -13,7 +13,27 @@ interface EnvVar {
   required: boolean
 }
 
+interface FeatureFlag {
+  id: number
+  key: string
+  enabled: boolean
+}
+
+interface FeatureDep {
+  flagKey: string
+  requiredEnvs: string[]
+}
+
+const FEATURE_DEPS: FeatureDep[] = [
+  { flagKey: 'payments_stripe',           requiredEnvs: ['STRIPE_KEY'] },
+  { flagKey: 'payments_pix',              requiredEnvs: ['STRIPE_KEY'] },
+  { flagKey: 'ai_blog_enabled',           requiredEnvs: ['OPENAI_KEY'] },
+  { flagKey: 'email_auto_enabled',        requiredEnvs: ['SMTP_HOST', 'SMTP_PORT'] },
+  { flagKey: 'email_verification_required', requiredEnvs: ['SMTP_HOST', 'REDIS_URL'] },
+]
+
 const envVars = ref<EnvVar[]>([])
+const features = ref<FeatureFlag[]>([])
 const filterCategory = ref('all')
 const importText = ref('')
 const importResult = ref<{ updated: number; skipped: number; message: string; errors?: string[] } | null>(null)
@@ -32,9 +52,29 @@ const filtered = computed(() => {
 const missingRequired = computed(() => envVars.value.filter(v => v.required && !v.is_set))
 const missingOptional = computed(() => envVars.value.filter(v => !v.required && !v.is_set && !v.is_secret))
 
+// For each feature dep entry, compute which ENVs are missing
+const featureDepsWithStatus = computed(() => {
+  const envMap = new Map(envVars.value.map(v => [v.key, v.is_set]))
+  return FEATURE_DEPS.map(dep => {
+    const flag = features.value.find(f => f.key === dep.flagKey)
+    const missingEnvs = dep.requiredEnvs.filter(k => !envMap.get(k))
+    return {
+      flagKey: dep.flagKey,
+      enabled: flag?.enabled ?? false,
+      requiredEnvs: dep.requiredEnvs,
+      missingEnvs,
+      warn: (flag?.enabled ?? false) && missingEnvs.length > 0,
+    }
+  })
+})
+
 async function load() {
-  const data = await api.get<{ data: EnvVar[] }>('/api/v1/admin/config/env')
-  envVars.value = data.data || []
+  const [envData, featData] = await Promise.all([
+    api.get<{ data: EnvVar[] }>('/api/v1/admin/config/env'),
+    api.get<FeatureFlag[]>('/api/v1/admin/features').catch(() => [] as FeatureFlag[]),
+  ])
+  envVars.value = envData.data || []
+  features.value = Array.isArray(featData) ? featData : []
 }
 
 function exportEnv() {
@@ -85,17 +125,53 @@ onMounted(load)
       </div>
     </div>
 
-    <!-- Missing required warning -->
-    <div v-if="missingRequired.length" class="alert alert-error">
-      <strong>Missing required ENV vars:</strong>
-      <span v-for="v in missingRequired" :key="v.key" class="badge badge-error">{{ v.key }}</span>
-    </div>
+    <!-- ── Active Feature Flags ── -->
+    <section class="section-card">
+      <h3 class="section-title">Active Feature Flags</h3>
+      <div v-if="features.length === 0" class="empty-note">No feature flags found.</div>
+      <div v-else class="flag-grid">
+        <span
+          v-for="f in features"
+          :key="f.id"
+          :class="['flag-badge', f.enabled ? 'flag-on' : 'flag-off']"
+          :title="f.enabled ? 'Enabled' : 'Disabled'"
+        >{{ f.key }}</span>
+      </div>
+    </section>
 
-    <!-- Missing optional info -->
-    <div v-if="missingOptional.length" class="alert alert-warn">
-      <strong>Unconfigured optional features:</strong>
-      <span v-for="v in missingOptional" :key="v.key" class="badge badge-warn">{{ v.key }}</span>
-    </div>
+    <!-- ── Feature → ENV Dependency Map ── -->
+    <section class="section-card">
+      <h3 class="section-title">Feature → ENV Dependencies</h3>
+      <table class="dep-table">
+        <thead>
+          <tr>
+            <th>Flag</th>
+            <th>Flag Status</th>
+            <th>Required ENVs</th>
+            <th>ENV Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="dep in featureDepsWithStatus" :key="dep.flagKey" :class="{ 'dep-warn': dep.warn }">
+            <td><code>{{ dep.flagKey }}</code></td>
+            <td>
+              <span :class="['status-dot', dep.enabled ? 'set' : 'unset']"></span>
+              {{ dep.enabled ? 'Enabled' : 'Disabled' }}
+            </td>
+            <td>
+              <span v-for="env in dep.requiredEnvs" :key="env" class="env-tag">{{ env }}</span>
+            </td>
+            <td>
+              <span v-if="dep.missingEnvs.length === 0" class="env-ok">All set</span>
+              <span v-else class="env-missing">
+                Missing: {{ dep.missingEnvs.join(', ') }}
+                <span v-if="dep.warn" class="warn-icon" title="Feature is enabled but ENV is missing">⚠</span>
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
 
     <!-- Import panel -->
     <div v-if="showImport" class="import-panel">
@@ -115,6 +191,16 @@ onMounted(load)
           <li v-for="(err, i) in importResult.errors" :key="i" class="error-line">{{ err }}</li>
         </ul>
       </div>
+    </div>
+
+    <!-- Missing required / optional alerts (contextual, above the ENV table) -->
+    <div v-if="missingRequired.length" class="alert alert-error">
+      <strong>Missing required ENV vars:</strong>
+      <span v-for="v in missingRequired" :key="v.key" class="badge badge-error">{{ v.key }}</span>
+    </div>
+    <div v-if="missingOptional.length" class="alert alert-warn">
+      <strong>Unconfigured optional features:</strong>
+      <span v-for="v in missingOptional" :key="v.key" class="badge badge-warn">{{ v.key }}</span>
     </div>
 
     <!-- Category filter -->
@@ -284,4 +370,46 @@ code { font-size: 12px; padding: 2px 6px; background: var(--code-bg); border-rad
 .val { color: var(--accent); }
 .empty { color: var(--text); opacity: 0.4; }
 .desc { color: var(--text); font-size: 12px; max-width: 250px; }
+
+/* Feature flags & dep map */
+.section-card {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.section-title { margin: 0 0 14px; font-size: 15px; color: var(--text-h); font-weight: 600; }
+.empty-note { font-size: 13px; color: var(--text); opacity: 0.6; }
+
+.flag-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.flag-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+}
+.flag-on  { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+.flag-off { background: rgba(107,114,128,0.12); color: #6b7280; border: 1px solid rgba(107,114,128,0.25); }
+
+.dep-table { width: 100%; border-collapse: collapse; }
+.dep-table th, .dep-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+.dep-table th { font-weight: 500; color: var(--text); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+tr.dep-warn { background: rgba(239,68,68,0.05); }
+
+.env-tag {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-h);
+}
+.env-ok   { color: #22c55e; font-size: 12px; }
+.env-missing { color: #ef4444; font-size: 12px; font-family: var(--mono); }
+.warn-icon { margin-left: 4px; font-style: normal; }
 </style>

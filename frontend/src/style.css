@@ -294,3 +294,45 @@ code {
     border-right-color: var(--border);
   }
 }
+
+/* Manual theme overrides */
+[data-theme="light"] {
+  color-scheme: light;
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #2644ec;
+  --accent-bg: rgba(59, 85, 255, 0.1);
+  --accent-border: rgba(59, 85, 255, 0.5);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --text: #9ca3af;
+  --text-h: #f3f4f6;
+  --bg: #16171d;
+  --border: #2e303a;
+  --code-bg: #1f2028;
+  --accent: #c084fc;
+  --accent-bg: rgba(192, 132, 252, 0.15);
+  --accent-border: rgba(192, 132, 252, 0.5);
+}
+
+/* High contrast */
+.high-contrast {
+  --text: #000 !important;
+  --text-h: #000 !important;
+  --bg: #fff !important;
+  --border: #000 !important;
+  --accent: #0000ff !important;
+}
+
+.high-contrast[data-theme="dark"] {
+  --text: #fff !important;
+  --text-h: #fff !important;
+  --bg: #000 !important;
+  --border: #fff !important;
+  --accent: #00ffff !important;
+}

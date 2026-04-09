@@ -2,14 +2,18 @@
 import { RouterView } from 'vue-router'
 import DynamicFooter from './components/common/DynamicFooter.vue'
 import UpdateToast from './components/common/UpdateToast.vue'
+import AccessibilityBar from './components/common/AccessibilityBar.vue'
 import { useAuthStore } from './stores/auth'
 import { useRouter } from 'vue-router'
 import { useTheme } from './composables/useTheme'
+import { useAccessibility } from './composables/useAccessibility'
 
 const auth = useAuthStore()
 const router = useRouter()
 const { loadTheme } = useTheme()
 loadTheme()
+const { init } = useAccessibility()
+init()
 
 async function logout() {
   await auth.logout()
@@ -40,6 +44,7 @@ async function logout() {
     </main>
     <DynamicFooter />
     <UpdateToast />
+    <AccessibilityBar />
   </div>
 </template>
 

@@ -14,6 +14,11 @@ Full-stack starter kit: Go backend + Vue 3 frontend. Landing page, admin panel, 
   <img src="resources/print_screen_blueprint.png" alt="landpage printscreen" style="max-width: 65%; height: auto;">
 </p>
 
+<p align="center">
+  <img src="resources/blueprint_panel.png" alt="admin panel printscreen" style="max-width: 65%; height: auto;">
+</p>
+
+
 ## Quick Start
 
 ### Prerequisites
