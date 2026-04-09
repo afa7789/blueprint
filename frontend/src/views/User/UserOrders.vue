@@ -57,8 +57,8 @@ const orders = ref<Order[]>([])
 
 onMounted(async () => {
   try {
-    const data = await api.get<{ orders: Order[] }>('/api/v1/orders/me')
-    orders.value = data.orders ?? []
+    const data = await api.get<{ data: Order[]; total: number }>('/api/v1/orders/me')
+    orders.value = data.data ?? []
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load orders'
   } finally {

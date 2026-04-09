@@ -45,8 +45,8 @@ async function fetchPost() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ post: Post }>(`/api/v1/blog/${route.params.slug}`)
-    post.value = data.post
+    const data = await api.get<Post>(`/api/v1/blog/${route.params.slug}`)
+    post.value = data
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load post'
   } finally {

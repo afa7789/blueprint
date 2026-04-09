@@ -86,8 +86,8 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ orders: Order[] }>('/api/v1/admin/orders?status=paid')
-    orders.value = data.orders
+    const data = await api.get<Order[]>('/api/v1/admin/orders?status=paid')
+    orders.value = data
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load orders'
   } finally {

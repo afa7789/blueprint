@@ -50,8 +50,8 @@ const addMessage = ref('')
 
 onMounted(async () => {
   try {
-    const data = await api.get<{ cards: Card[] }>('/api/v1/user/saved-cards')
-    cards.value = data.cards ?? []
+    const data = await api.get<Card[]>('/api/v1/user/saved-cards')
+    cards.value = data ?? []
   } catch (e: unknown) {
     if (e instanceof ApiError && (e.message?.includes('env_required') || e.status === 503)) {
       envNotice.value = true
