@@ -17,7 +17,9 @@
 - [x] Blog with AI (CRUD, upload de imagens, gerar com IA placeholder)
 - [x] Linktree System (CRUD + reordenar)
 - [x] Brand Kit (cores, logo, favicon, fontes)
-- [x] User Groups (desconto por grupo)
+- [x] User Groups (email e descontos por grupo)
+- [x] Legal Pages — Terms of Service + Privacy Policy (admin CRUD, HTML editor, footer links)
+- [x] Security Settings (rate limits, login attempts, password policy — admin configurable)
 
 ---
 
@@ -50,9 +52,22 @@
 
 ## 6. Painel do Usuário
 - [x] Login / Register / Forgot Password
-- [x] Histórico de pedidos + tracking
-- [ ] Atualizar perfil (pendente)
-- [ ] Adicionar cartão salvo (pendente — depende Stripe Customer)
+- [x] Email verification (feature flag toggle, Redis token, 24h expiry)
+- [x] Atualizar perfil (nome, telefone, avatar, endereço)
+- [x] Alterar senha (verifica senha atual)
+- [x] Cartões salvos (Stripe Customer + SetupIntent + listar/deletar)
+- [x] Histórico de pedidos + tracking (status badges, link rastreio)
+- [x] Layout dedicado com sidebar (/user/profile, /user/password, /user/cards, /user/orders)
+- [x] Nav bar com "My Account" / "Admin" / "Login" / "Logout"
+- [x] ENV warning quando Stripe não configurado (`STRIPE_KEY`)
+
+## 6.1 Helper Boxes (Admin)
+- [x] Componente reutilizável `HelperBox` com title, description, envVar, featureFlag
+- [x] AdminBlog — aviso `OPENAI_KEY` + flag `ai_blog_enabled`
+- [x] AdminTools — aviso `PGWEB_URL, GRAFANA_URL, PROMETHEUS_URL`
+- [x] AdminSecurity — aviso `REDIS_URL`
+- [x] AdminEmailGroups — aviso `SMTP_HOST, SMTP_PORT` + flag `email_auto_enabled`
+- [x] AdminJobs — info sobre registro de handlers
 
 ---
 
@@ -155,7 +170,42 @@
 
 ---
 
-## 14. DevOps & Deployment Scripts
+## 14. Security & Route Protection
+- [x] JWT auth (access token 15min + refresh token 7d, httpOnly cookies)
+- [x] RBAC middleware (admin, operator, user)
+- [x] Rate limiting — Redis-backed, per IP/email/user, configurable
+  - API: 60 req/min per IP (default)
+  - Auth (login): 10 req/min per email
+  - Register: 5 req/hour per email
+  - Forgot password: 3 req/hour per email
+- [x] Security headers middleware (X-Frame-Options, HSTS, CSP, etc.)
+- [x] Request size limiting (default 10MB)
+- [x] Email verification on register (feature flag toggle)
+  - Redis token (24h TTL)
+  - Blocks login if unverified + flag enabled
+  - Auto-verifies if flag disabled
+- [x] Admin-configurable security settings (DB table, no restart needed):
+  - rate_limit_api, rate_limit_auth, rate_limit_register, rate_limit_forgot
+  - max_login_attempts, login_lock_duration
+  - password_min_length, session_max_age
+- [x] Admin panel UI for security settings
+- [x] Rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset)
+- [x] Graceful degradation (rate limiting skipped if Redis unavailable)
+- [x] Audit trail on all admin mutations
+
+---
+
+## 15. Legal Pages
+- [x] DB-backed legal pages (terms, privacy, cookies, etc.)
+- [x] Admin CRUD with HTML content editor
+- [x] Slug-based public URLs (/legal/terms, /legal/privacy)
+- [x] Active/inactive toggle per page
+- [x] Auto-displayed in footer (dynamic, fetched from API)
+- [x] Seeded with generic Terms of Service + Privacy Policy
+
+---
+
+## 16. DevOps & Deployment Scripts
 - [x] `setup-vps.sh` — Provisionamento completo VPS Ubuntu (Go, Bun, PG, Redis, Nginx+Brotli, Certbot, pgweb, Prometheus, Grafana, Node Exporter, systemd units, UFW)
 - [x] `setup-vps-runner.sh` — Orquestrador remoto (scp + ssh)
 - [x] `install.sh` — Instalação lightweight de dependências

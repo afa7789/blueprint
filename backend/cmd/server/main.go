@@ -3,6 +3,7 @@ package main
 import (
 	c "context"
 	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -45,7 +46,6 @@ func main() {
 		log.Printf("Redis not available: %v (continuing without cache)", err)
 	} else {
 		log.Println("Connected to Redis")
-		_ = rdb
 	}
 
 	// Fiber app
@@ -65,6 +65,17 @@ func main() {
 		AllowOrigins:     cfg.FrontendURL,
 		AllowCredentials: true,
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+	}))
+
+	// Security headers and request size limit
+	app.Use(middleware.SecurityHeaders())
+	app.Use(middleware.RequestSizeLimit(cfg.MaxRequestBodyMB * 1024 * 1024))
+
+	// General API rate limit
+	app.Use(middleware.RateLimit(rdb, middleware.RateLimitConfig{
+		Max:     cfg.RateLimitAPI,
+		Window:  time.Minute,
+		KeyFunc: middleware.KeyByIP,
 	}))
 
 	// Health check
@@ -97,9 +108,13 @@ func main() {
 	categoryRepo := infrastructure.NewCategoryRepo(pool)
 	orderRepo := infrastructure.NewOrderRepo(pool)
 	couponRepo := infrastructure.NewCouponRepo(pool)
+	securitySettingsRepo := infrastructure.NewSecuritySettingRepo(pool)
+	profileRepo := infrastructure.NewUserProfileRepo(pool)
 
 	// Handlers
-	authHandler := handlers.NewAuthHandler(userRepo, cfg)
+	authHandler := handlers.NewAuthHandler(userRepo, flagRepo, rdb, cfg)
+	userHandler := handlers.NewUserHandler(userRepo, profileRepo, cfg)
+	securityHandler := handlers.NewSecurityHandler(securitySettingsRepo)
 	flagHandler := handlers.NewFeatureFlagHandler(flagRepo)
 	waitlistHandler := handlers.NewWaitlistHandler(waitlistRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, bannerRepo, linktreeRepo, brandKitRepo, emailGroupRepo, emailSubRepo, userGroupRepo, cfg)
@@ -126,24 +141,46 @@ func main() {
 		log.Printf("Failed to start job scheduler: %v", err)
 	}
 
-	// Tools + Logs handlers
+	// Tools + Logs + Legal handlers
 	toolsHandler := handlers.NewToolsHandler(toolRepo, cfg)
 	logsHandler := handlers.NewLogsHandler(appLogRepo, auditLogRepo, logConfigRepo)
+	legalRepo := infrastructure.NewLegalPageRepo(pool)
+	legalHandler := handlers.NewLegalHandler(legalRepo)
 
 	// Routes
 	api := app.Group("/api/v1")
 
 	auth := api.Group("/auth")
-	auth.Post("/register", authHandler.Register)
-	auth.Post("/login", authHandler.Login)
+	auth.Post("/register",
+		middleware.RateLimit(rdb, middleware.RateLimitConfig{Max: cfg.RateLimitRegister, Window: time.Hour, KeyFunc: middleware.KeyByEmail}),
+		authHandler.Register)
+	auth.Post("/login",
+		middleware.RateLimit(rdb, middleware.RateLimitConfig{Max: cfg.RateLimitAuth, Window: time.Minute, KeyFunc: middleware.KeyByEmail}),
+		authHandler.Login)
 	auth.Post("/refresh", authHandler.Refresh)
 	auth.Post("/logout", authHandler.Logout)
 	auth.Get("/me", middleware.RequireAuth(cfg), authHandler.Me)
-	auth.Post("/forgot-password", authHandler.ForgotPassword)
+	auth.Post("/forgot-password",
+		middleware.RateLimit(rdb, middleware.RateLimitConfig{Max: cfg.RateLimitForgot, Window: time.Hour, KeyFunc: middleware.KeyByEmail}),
+		authHandler.ForgotPassword)
 	auth.Post("/reset-password", authHandler.ResetPassword)
+	auth.Post("/verify-email", authHandler.VerifyEmail)
+
+	// User panel routes
+	user := api.Group("/user", middleware.RequireAuth(cfg))
+	user.Get("/profile", userHandler.GetProfile)
+	user.Put("/profile", userHandler.UpdateProfile)
+	user.Put("/password", userHandler.ChangePassword)
+	user.Get("/saved-cards", userHandler.ListSavedCards)
+	user.Post("/saved-cards", userHandler.CreateSetupIntent)
+	user.Delete("/saved-cards/:id", userHandler.DeleteSavedCard)
 
 	api.Get("/features", flagHandler.GetAll)
 	api.Put("/admin/features/:key", middleware.RequireAuth(cfg), middleware.RequireRole("admin"), flagHandler.Toggle)
+
+	// Legal pages (public)
+	api.Get("/legal", legalHandler.ListActive)
+	api.Get("/legal/:slug", legalHandler.GetBySlug)
 
 	// Public content routes
 	api.Get("/linktree", func(fc *fiber.Ctx) error {
@@ -278,6 +315,16 @@ func main() {
 	admin.Get("/logs", logsHandler.ListLogs)
 	admin.Post("/logs/cleanup", logsHandler.CleanupLogs)
 	admin.Get("/audit", logsHandler.ListAuditLogs)
+
+	// Legal pages admin
+	admin.Get("/legal", legalHandler.AdminList)
+	admin.Post("/legal", legalHandler.AdminCreate)
+	admin.Put("/legal/:id", legalHandler.AdminUpdate)
+	admin.Delete("/legal/:id", legalHandler.AdminDelete)
+
+	// Security settings admin
+	admin.Get("/security", securityHandler.ListSettings)
+	admin.Put("/security/:key", securityHandler.UpdateSetting)
 
 	// Static file serving
 	app.Static("/static", cfg.UploadDir)

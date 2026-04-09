@@ -1,12 +1,23 @@
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+      - pgweb
+      - grafana
+      - prometheus
+
   postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: blueprint
       POSTGRES_PASSWORD: blueprint
       POSTGRES_DB: blueprint
-    ports:
-      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -17,43 +28,73 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+      - go_mod_cache:/go/pkg/mod
+    environment:
+      DATABASE_URL: postgres://blueprint:blueprint@postgres:5432/blueprint?sslmode=disable
+      DATABASE_MIGRATION_URL: postgres://blueprint:blueprint@postgres:5432/blueprint?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-change-in-production
+      PORT: "8080"
+      ENV: development
+      FRONTEND_URL: http://localhost
+      STORAGE_TYPE: local
+      UPLOAD_DIR: ./uploads
+      PGWEB_URL: /pgweb/
+      GRAFANA_URL: /grafana/
+      PROMETHEUS_URL: /prometheus/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: ""
+
   pgweb:
     image: sosedoff/pgweb
-    ports:
-      - "8083:8081"
     environment:
       PGWEB_DATABASE_URL: postgres://blueprint:blueprint@postgres:5432/blueprint?sslmode=disable
+      PGWEB_URL_PREFIX: pgweb
     depends_on:
       postgres:
         condition: service_healthy
 
   prometheus:
     image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
     volumes:
       - ./scripts/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--web.external-url=/prometheus/'
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - '--web.route-prefix=/prometheus/'
 
   grafana:
     image: grafana/grafana:latest
-    ports:
-      - "3001:3000"
     environment:
-      GF_SERVER_ROOT_URL: http://localhost:3001/
+      GF_SERVER_ROOT_URL: "http://localhost/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_SECURITY_ADMIN_PASSWORD: blueprint
     volumes:
       - grafana_data:/var/lib/grafana
@@ -64,3 +105,4 @@ volumes:
   pgdata:
   prometheus_data:
   grafana_data:
+  go_mod_cache:

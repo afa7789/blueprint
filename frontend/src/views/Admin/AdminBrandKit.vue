@@ -1,5 +1,10 @@
 <template>
   <div>
+    <HelperBox
+      title="Brand Kit"
+      description="Customize your brand identity. Colors, logo, favicon, and fonts are applied globally across the frontend."
+      featureFlag="brand_kit_enabled"
+    />
     <h2>Brand Kit</h2>
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="success" class="success">Saved successfully.</div>
@@ -34,6 +39,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface BrandKit {
   primary_color: string

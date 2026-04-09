@@ -1,5 +1,6 @@
 <template>
   <div>
+    <HelperBox title="Background Jobs" description="Jobs are scheduled via cron expressions. Register handlers in the Go backend." />
     <div class="page-header">
       <h2>Jobs</h2>
       <button class="btn-primary" @click="showCreate = true">Create Job</button>
@@ -111,6 +112,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface Job {
   id: string

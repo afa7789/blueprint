@@ -1,5 +1,9 @@
 <template>
   <div>
+    <HelperBox
+      title="User Management"
+      description="Manage user accounts and roles. Admins can upgrade users to operator or admin roles. Deleting a user removes all their data."
+    />
     <h2>Users</h2>
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="loading">Loading...</div>
@@ -46,6 +50,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface User {
   id: string

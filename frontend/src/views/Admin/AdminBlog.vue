@@ -1,5 +1,6 @@
 <template>
   <div class="admin-blog">
+    <HelperBox title="AI Blog Generation" description="Generate blog content with AI. Requires an OpenAI API key." envVar="OPENAI_KEY" featureFlag="ai_blog_enabled" />
     <div class="page-header">
       <h1>Blog Posts</h1>
       <button @click="openCreate" class="btn btn-primary">+ New Post</button>
@@ -103,6 +104,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface Post {
   id: string

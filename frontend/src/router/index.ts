@@ -49,6 +49,11 @@ const routes = [
     component: () => import('../views/Blog/BlogPost.vue'),
   },
   {
+    path: '/legal/:slug',
+    name: 'LegalPage',
+    component: () => import('../views/LegalPage.vue'),
+  },
+  {
     path: '/linktree',
     name: 'Linktree',
     component: () => import('../views/Linktree.vue')
@@ -75,6 +80,18 @@ const routes = [
     meta: { requiresAuth: true, requiresRole: 'operator' }
   },
   {
+    path: '/user',
+    component: () => import('../views/User/UserLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      { path: '', redirect: '/user/profile' },
+      { path: 'profile', name: 'UserProfile', component: () => import('../views/User/UserProfile.vue') },
+      { path: 'password', name: 'UserPassword', component: () => import('../views/User/UserPassword.vue') },
+      { path: 'cards', name: 'UserCards', component: () => import('../views/User/UserCards.vue') },
+      { path: 'orders', name: 'UserOrders', component: () => import('../views/User/UserOrders.vue') },
+    ]
+  },
+  {
     path: '/admin',
     component: () => import('../views/Admin/AdminLayout.vue'),
     meta: { requiresAuth: true, requiresRole: 'admin' },
@@ -91,6 +108,8 @@ const routes = [
       { path: 'tools', name: 'AdminTools', component: () => import('../views/Admin/AdminTools.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'logs', name: 'AdminLogs', component: () => import('../views/Admin/AdminLogs.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'audit', name: 'AdminAudit', component: () => import('../views/Admin/AdminAudit.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
+      { path: 'legal', name: 'AdminLegal', component: () => import('../views/Admin/AdminLegal.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
+      { path: 'security', name: 'AdminSecurity', component: () => import('../views/Admin/AdminSecurity.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
     ]
   },
 ]

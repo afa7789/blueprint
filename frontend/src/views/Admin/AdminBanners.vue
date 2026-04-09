@@ -1,5 +1,9 @@
 <template>
   <div>
+    <HelperBox
+      title="Banner System"
+      description="Create banners with scheduling (start/end dates), profile targeting, and display duration. Banners show across the site based on active status and target audience."
+    />
     <h2>Banners</h2>
     <div v-if="error" class="error">{{ error }}</div>
 
@@ -74,6 +78,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface Banner {
   id: string

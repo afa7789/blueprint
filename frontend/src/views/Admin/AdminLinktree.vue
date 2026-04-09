@@ -1,5 +1,10 @@
 <template>
   <div>
+    <HelperBox
+      title="Linktree"
+      description="Manage links displayed on the public Linktree page. Drag to reorder. Only active items are shown publicly."
+      featureFlag="linktree_enabled"
+    />
     <h2>Linktree</h2>
     <div v-if="error" class="error">{{ error }}</div>
 
@@ -60,6 +65,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface LinkItem {
   id: string

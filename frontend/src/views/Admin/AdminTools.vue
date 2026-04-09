@@ -1,5 +1,6 @@
 <template>
   <div>
+    <HelperBox title="External Tool URLs" description="Configure tool URLs via environment variables. Empty URLs will show tools as unconfigured." envVar="PGWEB_URL, GRAFANA_URL, PROMETHEUS_URL" />
     <div class="page-header">
       <h2>Tools Hub</h2>
       <button class="btn-primary" @click="openCreate">Add Tool</button>
@@ -58,6 +59,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface Tool {
   id: string

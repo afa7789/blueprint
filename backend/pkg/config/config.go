@@ -39,6 +39,18 @@ type Config struct {
 	MinioURL          string
 	GrafanaURL        string
 	PrometheusURL     string
+
+	// Rate limiting
+	RateLimitAPI      int // requests per minute for general API (default 60)
+	RateLimitAuth     int // requests per minute for auth endpoints (default 10)
+	RateLimitRegister int // requests per hour for register (default 5)
+	RateLimitForgot   int // requests per hour for forgot password (default 3)
+
+	// Email verification
+	EmailVerificationRequired bool // require email verification on register (default false)
+
+	// Security
+	MaxRequestBodyMB int // max request body in MB (default 10)
 }
 
 func Load() *Config {
@@ -75,12 +87,28 @@ func Load() *Config {
 		MinioURL:          getEnv("MINIO_URL", ""),
 		GrafanaURL:        getEnv("GRAFANA_URL", ""),
 		PrometheusURL:     getEnv("PROMETHEUS_URL", ""),
+
+		RateLimitAPI:              getEnvInt("RATE_LIMIT_API", 60),
+		RateLimitAuth:             getEnvInt("RATE_LIMIT_AUTH", 10),
+		RateLimitRegister:         getEnvInt("RATE_LIMIT_REGISTER", 5),
+		RateLimitForgot:           getEnvInt("RATE_LIMIT_FORGOT", 3),
+		EmailVerificationRequired: getEnv("EMAIL_VERIFICATION_REQUIRED", "false") == "true",
+		MaxRequestBodyMB:          getEnvInt("MAX_REQUEST_BODY_MB", 10),
 	}
 }
 
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if v, err := strconv.Atoi(value); err == nil {
+			return v
+		}
 	}
 	return defaultValue
 }

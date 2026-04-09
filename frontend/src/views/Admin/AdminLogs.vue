@@ -1,5 +1,9 @@
 <template>
   <div>
+    <HelperBox
+      title="Application Logs"
+      description="View and search application logs. Real-time streaming requires an active connection. Configure retention period and minimum log level in settings below."
+    />
     <div class="page-header">
       <h2>Logs</h2>
       <button class="btn-primary" :class="{ 'btn-active': streaming }" @click="toggleStream">
@@ -69,6 +73,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 

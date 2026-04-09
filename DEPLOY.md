@@ -342,6 +342,16 @@ STRIPE_WEBHOOK_SECRET=
 OPENAI_KEY=
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
+
+# Rate Limiting (defaults — also configurable via Admin > Security)
+RATE_LIMIT_API=60
+RATE_LIMIT_AUTH=10
+RATE_LIMIT_REGISTER=5
+RATE_LIMIT_FORGOT=3
+MAX_REQUEST_BODY_MB=10
+
+# Email Verification (also toggleable via Admin > Feature Flags)
+EMAIL_VERIFICATION_REQUIRED=false
 ```
 
 ---

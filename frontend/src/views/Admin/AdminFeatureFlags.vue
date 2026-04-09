@@ -1,5 +1,9 @@
 <template>
   <div>
+    <HelperBox
+      title="Feature Flags"
+      description="Toggle features on/off without redeploying. Changes take effect immediately for all users. Disabling a module hides it from the frontend."
+    />
     <h2>Feature Flags</h2>
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="loading">Loading...</div>
@@ -25,6 +29,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface Flag {
   key: string

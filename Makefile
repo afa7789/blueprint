@@ -1,17 +1,46 @@
-.PHONY: up down backend frontend dev logs pgweb deploy deploy-backend deploy-frontend
+.PHONY: up down logs backend frontend build deploy ngrok
 
-# === Local Development ===
+# === Local Development (tudo via Docker, 1 porta) ===
 
 up:
-	docker compose up -d
+	@docker compose up -d --build
 	@echo ""
-	@echo "  PostgreSQL: localhost:5433"
-	@echo "  Redis:      localhost:6380"
-	@echo "  pgweb:      http://localhost:8083"
+	@echo "  ┌──────────────┬──────────────────────────────────────┐"
+	@echo "  │ Service      │ URL                                  │"
+	@echo "  ├──────────────┼──────────────────────────────────────┤"
+	@echo "  │ App          │ http://localhost                     │"
+	@echo "  │ API          │ http://localhost/api/v1/...          │"
+	@echo "  │ Health       │ http://localhost/healthz             │"
+	@echo "  │ pgweb        │ http://localhost/pgweb/              │"
+	@echo "  │ Grafana      │ http://localhost/grafana/ (admin/bp) │"
+	@echo "  │ Prometheus   │ http://localhost/prometheus/         │"
+	@echo "  └──────────────┴──────────────────────────────────────┘"
 	@echo ""
+	@echo "  Share: ngrok http 80"
+	@echo ""
+	@echo "  Logs:   make logs"
+	@echo "  Stop:   make down"
+	@echo "  Share:  make ngrok"
 
 down:
 	docker compose down
+
+logs:
+	docker compose logs -f
+
+logs-backend:
+	docker compose logs -f backend
+
+logs-frontend:
+	docker compose logs -f frontend
+
+# Share via ngrok (single port)
+ngrok:
+	@echo "Sharing http://localhost:80 via ngrok..."
+	@echo "Run: ngrok http 80"
+	@ngrok http 80
+
+# === Run without Docker (local Go + Bun) ===
 
 backend:
 	@set -a && . ./.env && set +a && cd backend && go run ./cmd/server
@@ -19,20 +48,7 @@ backend:
 frontend:
 	cd frontend && bun run dev
 
-dev:
-	@echo "Run in separate terminals:"
-	@echo "  make up       # infrastructure"
-	@echo "  make backend  # API on :8080"
-	@echo "  make frontend # UI on :5173"
-	@echo "  pgweb:        http://localhost:8083"
-
-logs:
-	docker compose logs -f
-
-pgweb:
-	@open http://localhost:8083 2>/dev/null || echo "Open http://localhost:8083"
-
-# === Build ===
+# === Build (production binaries) ===
 
 build-backend:
 	cd backend && CGO_ENABLED=0 go build -ldflags="-s -w" -o ../build/blueprint-api ./cmd/server
@@ -56,14 +72,3 @@ deploy:
 
 deploy-dry:
 	bash scripts/deploy.sh --all --dry-run
-
-# === VPS Setup ===
-
-setup-vps:
-	@echo "Usage: bash scripts/setup-vps-runner.sh user@your-vps [db_pass] [redis_pass]"
-
-setup-nginx:
-	@echo "Usage: sudo bash scripts/setup-nginx.sh your-domain.com"
-
-setup-monitoring:
-	@echo "Usage: sudo bash scripts/setup-monitoring.sh"

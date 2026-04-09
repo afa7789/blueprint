@@ -76,9 +76,18 @@ docker compose down -v    # stop + delete data
 
 ### Core
 - Landing Page + Waitlist
-- Dynamic Footer (shows Linktree/Store only if enabled)
+- Dynamic Footer (shows Linktree/Store/Legal pages based on config)
 - Auth with JWT + Roles (Admin, Operator, User)
-- Feature Flags (13 toggles, DB-backed)
+- Email verification on register (feature flag toggle)
+- Feature Flags (14 toggles, DB-backed)
+
+### Security & Route Protection
+- Redis-backed rate limiting (per IP/email, configurable per route)
+- Security headers (HSTS, X-Frame-Options, CSP, etc.)
+- Request size limiting
+- Brute force protection (configurable max attempts + lock duration)
+- Admin-configurable security settings (no restart needed)
+- Audit trail on all admin mutations
 
 ### Admin Panel
 - User management + role control
@@ -90,6 +99,8 @@ docker compose down -v    # stop + delete data
 - Blog management with AI generation
 - Product/Category/Order management
 - Coupon management
+- Legal pages editor (Terms, Privacy — HTML, footer auto-display)
+- Security settings dashboard
 
 ### E-Commerce (Store)
 - Public product catalog with categories

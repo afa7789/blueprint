@@ -6,13 +6,24 @@ import (
 )
 
 type User struct {
-	ID           string     `json:"id"`
-	Email        string     `json:"email"`
-	PasswordHash string     `json:"password_hash"`
-	Name         *string    `json:"name"`
-	Role         string     `json:"role"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID              string     `json:"id"`
+	Email           string     `json:"email"`
+	PasswordHash    string     `json:"password_hash"`
+	Name            *string    `json:"name"`
+	Role            string     `json:"role"`
+	EmailVerified    bool       `json:"email_verified"`
+	EmailVerifiedAt  *time.Time `json:"email_verified_at,omitempty"`
+	StripeCustomerID *string    `json:"stripe_customer_id,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+}
+
+type SecuritySetting struct {
+	ID          int       `json:"id"`
+	Key         string    `json:"key"`
+	Value       string    `json:"value"`
+	Description *string   `json:"description"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type UserProfile struct {
@@ -235,4 +246,14 @@ type LogConfig struct {
 	ID            int    `json:"id"`
 	RetentionDays int    `json:"retention_days"`
 	MinLevel      string `json:"min_level"`
+}
+
+// LegalPage represents a legal page (Terms, Privacy, etc.)
+type LegalPage struct {
+	ID        string    `json:"id"`
+	Slug      string    `json:"slug"`
+	Title     string    `json:"title"`
+	Content   string    `json:"content"`
+	IsActive  bool      `json:"is_active"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

@@ -1,26 +1,18 @@
 <template>
-  <div class="admin-layout">
+  <div class="user-layout">
     <button class="sidebar-toggle" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle sidebar">
       &#9776;
     </button>
     <aside class="sidebar" :class="{ open: sidebarOpen }">
       <nav>
-        <h3>Admin</h3>
-        <router-link to="/admin/users" @click="sidebarOpen = false">Users</router-link>
-        <router-link to="/admin/features" @click="sidebarOpen = false">Feature Flags</router-link>
-        <router-link to="/admin/banners" @click="sidebarOpen = false">Banners</router-link>
-        <router-link to="/admin/linktree" @click="sidebarOpen = false">Linktree</router-link>
-        <router-link to="/admin/brand-kit" @click="sidebarOpen = false">Brand Kit</router-link>
-        <router-link to="/admin/email-groups" @click="sidebarOpen = false">Email Groups</router-link>
-        <router-link to="/admin/jobs" @click="sidebarOpen = false">Jobs</router-link>
-        <router-link to="/admin/tools" @click="sidebarOpen = false">Tools Hub</router-link>
-        <router-link to="/admin/logs" @click="sidebarOpen = false">Logs</router-link>
-        <router-link to="/admin/audit" @click="sidebarOpen = false">Audit</router-link>
-        <router-link to="/admin/legal" @click="sidebarOpen = false">Legal Pages</router-link>
-        <router-link to="/admin/security" @click="sidebarOpen = false">Security</router-link>
+        <h3>My Account</h3>
+        <router-link to="/user/profile" @click="sidebarOpen = false">Profile</router-link>
+        <router-link to="/user/password" @click="sidebarOpen = false">Security</router-link>
+        <router-link to="/user/cards" @click="sidebarOpen = false">Saved Cards</router-link>
+        <router-link to="/user/orders" @click="sidebarOpen = false">Orders</router-link>
       </nav>
     </aside>
-    <main class="admin-main">
+    <main class="user-main">
       <router-view />
     </main>
   </div>
@@ -32,7 +24,7 @@ const sidebarOpen = ref(false)
 </script>
 
 <style scoped>
-.admin-layout {
+.user-layout {
   display: flex;
   min-height: 100svh;
   text-align: left;
@@ -83,7 +75,7 @@ const sidebarOpen = ref(false)
   font-weight: 500;
 }
 
-.admin-main {
+.user-main {
   flex: 1;
   padding: 32px;
   overflow-x: auto;
@@ -125,7 +117,7 @@ const sidebarOpen = ref(false)
     transform: translateX(0);
   }
 
-  .admin-main {
+  .user-main {
     padding: 16px;
     padding-top: 52px;
   }

@@ -1,14 +1,27 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlags'
+import { api } from '../../services/api'
 
 const linktreeEnabled = ref(false)
 const storeEnabled = ref(false)
+
+interface LegalLink {
+  slug: string
+  title: string
+}
+const legalPages = ref<LegalLink[]>([])
 
 onMounted(async () => {
   await fetchFeatureFlags()
   linktreeEnabled.value = isFeatureEnabled('linktree')
   storeEnabled.value = isFeatureEnabled('store')
+
+  try {
+    legalPages.value = await api.get<LegalLink[]>('/api/v1/legal')
+  } catch {
+    // silent — no legal pages configured
+  }
 })
 </script>
 
@@ -26,6 +39,11 @@ onMounted(async () => {
         </div>
       </div>
       <div class="footer-bottom">
+        <div v-if="legalPages.length" class="legal-links">
+          <router-link v-for="page in legalPages" :key="page.slug" :to="`/legal/${page.slug}`">
+            {{ page.title }}
+          </router-link>
+        </div>
         <p>&copy; 2026. All rights reserved.</p>
       </div>
     </div>
@@ -72,5 +90,23 @@ onMounted(async () => {
 .footer-bottom {
   font-size: 14px;
   color: var(--text);
+}
+
+.legal-links {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.legal-links a {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.2s;
+}
+
+.legal-links a:hover {
+  color: var(--accent);
 }
 </style>

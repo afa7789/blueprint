@@ -17,9 +17,9 @@ func NewUserRepo(pool *pgxpool.Pool) domain.UserRepository { return &userRepo{po
 
 func (r *userRepo) FindByID(ctx context.Context, id string) (*domain.User, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT id,email,password_hash,name,role,created_at,updated_at FROM users WHERE id=$1`, id)
+		`SELECT id,email,password_hash,name,role,email_verified,email_verified_at,stripe_customer_id,created_at,updated_at FROM users WHERE id=$1`, id)
 	u := &domain.User{}
-	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Role, &u.CreatedAt, &u.UpdatedAt); err != nil {
+	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Role, &u.EmailVerified, &u.EmailVerifiedAt, &u.StripeCustomerID, &u.CreatedAt, &u.UpdatedAt); err != nil {
 		return nil, err
 	}
 	return u, nil
@@ -27,9 +27,9 @@ func (r *userRepo) FindByID(ctx context.Context, id string) (*domain.User, error
 
 func (r *userRepo) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT id,email,password_hash,name,role,created_at,updated_at FROM users WHERE email=$1`, email)
+		`SELECT id,email,password_hash,name,role,email_verified,email_verified_at,stripe_customer_id,created_at,updated_at FROM users WHERE email=$1`, email)
 	u := &domain.User{}
-	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Role, &u.CreatedAt, &u.UpdatedAt); err != nil {
+	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Role, &u.EmailVerified, &u.EmailVerifiedAt, &u.StripeCustomerID, &u.CreatedAt, &u.UpdatedAt); err != nil {
 		return nil, err
 	}
 	return u, nil
@@ -37,9 +37,9 @@ func (r *userRepo) FindByEmail(ctx context.Context, email string) (*domain.User,
 
 func (r *userRepo) Create(ctx context.Context, u *domain.User) error {
 	return r.pool.QueryRow(ctx,
-		`INSERT INTO users(email,password_hash,name,role) VALUES($1,$2,$3,$4) RETURNING id,created_at,updated_at`,
+		`INSERT INTO users(email,password_hash,name,role) VALUES($1,$2,$3,$4) RETURNING id,email_verified,email_verified_at,created_at,updated_at`,
 		u.Email, u.PasswordHash, u.Name, u.Role,
-	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.EmailVerified, &u.EmailVerifiedAt, &u.CreatedAt, &u.UpdatedAt)
 }
 
 func (r *userRepo) Update(ctx context.Context, u *domain.User) error {
@@ -56,14 +56,14 @@ func (r *userRepo) Delete(ctx context.Context, id string) error {
 
 func (r *userRepo) List(ctx context.Context, offset, limit int) ([]domain.User, int, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id,email,password_hash,name,role,created_at,updated_at FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+		`SELECT id,email,password_hash,name,role,email_verified,email_verified_at,stripe_customer_id,created_at,updated_at FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
 		limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 	users, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (domain.User, error) {
 		var u domain.User
-		return u, row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Role, &u.CreatedAt, &u.UpdatedAt)
+		return u, row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.Role, &u.EmailVerified, &u.EmailVerifiedAt, &u.StripeCustomerID, &u.CreatedAt, &u.UpdatedAt)
 	})
 	if err != nil {
 		return nil, 0, err
@@ -73,6 +73,79 @@ func (r *userRepo) List(ctx context.Context, offset, limit int) ([]domain.User, 
 		return nil, 0, err
 	}
 	return users, total, nil
+}
+
+func (r *userRepo) VerifyEmail(ctx context.Context, userID string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE users SET email_verified = true, email_verified_at = NOW() WHERE id = $1`, userID)
+	return err
+}
+
+func (r *userRepo) UpdateStripeCustomerID(ctx context.Context, userID, customerID string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE users SET stripe_customer_id=$1, updated_at=NOW() WHERE id=$2`, customerID, userID)
+	return err
+}
+
+// ---- UserProfile ----
+
+type userProfileRepo struct{ pool *pgxpool.Pool }
+
+func NewUserProfileRepo(pool *pgxpool.Pool) domain.UserProfileRepository { return &userProfileRepo{pool} }
+
+func (r *userProfileRepo) FindByUserID(ctx context.Context, userID string) (*domain.UserProfile, error) {
+	row := r.pool.QueryRow(ctx,
+		`SELECT id,user_id,phone,avatar_url,address,metadata FROM user_profiles WHERE user_id=$1`, userID)
+	p := &domain.UserProfile{}
+	if err := row.Scan(&p.ID, &p.UserID, &p.Phone, &p.AvatarURL, &p.Address, &p.Metadata); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (r *userProfileRepo) Upsert(ctx context.Context, p *domain.UserProfile) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO user_profiles(id,user_id,phone,avatar_url,address,metadata)
+		 VALUES($1,$2,$3,$4,$5,$6)
+		 ON CONFLICT (user_id) DO UPDATE SET
+		   phone=EXCLUDED.phone,
+		   avatar_url=EXCLUDED.avatar_url,
+		   address=EXCLUDED.address,
+		   metadata=EXCLUDED.metadata`,
+		p.ID, p.UserID, p.Phone, p.AvatarURL, p.Address, p.Metadata)
+	return err
+}
+
+// ---- SecuritySetting ----
+
+type securitySettingRepo struct{ pool *pgxpool.Pool }
+
+func NewSecuritySettingRepo(pool *pgxpool.Pool) domain.SecuritySettingRepository {
+	return &securitySettingRepo{pool}
+}
+
+func (r *securitySettingRepo) GetAll(ctx context.Context) ([]domain.SecuritySetting, error) {
+	rows, err := r.pool.Query(ctx, `SELECT id,key,value,description,updated_at FROM security_settings ORDER BY key`)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (domain.SecuritySetting, error) {
+		var s domain.SecuritySetting
+		return s, row.Scan(&s.ID, &s.Key, &s.Value, &s.Description, &s.UpdatedAt)
+	})
+}
+
+func (r *securitySettingRepo) GetByKey(ctx context.Context, key string) (*domain.SecuritySetting, error) {
+	s := &domain.SecuritySetting{}
+	err := r.pool.QueryRow(ctx, `SELECT id,key,value,description,updated_at FROM security_settings WHERE key=$1`, key).
+		Scan(&s.ID, &s.Key, &s.Value, &s.Description, &s.UpdatedAt)
+	return s, err
+}
+
+func (r *securitySettingRepo) Update(ctx context.Context, key, value string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE security_settings SET value=$2, updated_at=NOW() WHERE key=$1`, key, value)
+	return err
 }
 
 // ---- FeatureFlag ----
@@ -1035,4 +1108,63 @@ func itoa(n int) string {
 		n /= 10
 	}
 	return string(buf[pos:])
+}
+
+// --- LegalPageRepository ---
+
+type legalPageRepo struct{ pool *pgxpool.Pool }
+
+func NewLegalPageRepo(pool *pgxpool.Pool) domain.LegalPageRepository {
+	return &legalPageRepo{pool}
+}
+
+func (r *legalPageRepo) FindBySlug(ctx context.Context, slug string) (*domain.LegalPage, error) {
+	var p domain.LegalPage
+	err := r.pool.QueryRow(ctx,
+		"SELECT id, slug, title, content, is_active, updated_at FROM legal_pages WHERE slug = $1", slug).
+		Scan(&p.ID, &p.Slug, &p.Title, &p.Content, &p.IsActive, &p.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *legalPageRepo) List(ctx context.Context, activeOnly bool) ([]domain.LegalPage, error) {
+	q := "SELECT id, slug, title, content, is_active, updated_at FROM legal_pages"
+	if activeOnly {
+		q += " WHERE is_active = true"
+	}
+	q += " ORDER BY slug"
+	rows, err := r.pool.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var pages []domain.LegalPage
+	for rows.Next() {
+		var p domain.LegalPage
+		if err := rows.Scan(&p.ID, &p.Slug, &p.Title, &p.Content, &p.IsActive, &p.UpdatedAt); err != nil {
+			return nil, err
+		}
+		pages = append(pages, p)
+	}
+	return pages, nil
+}
+
+func (r *legalPageRepo) Create(ctx context.Context, page *domain.LegalPage) error {
+	return r.pool.QueryRow(ctx,
+		"INSERT INTO legal_pages (slug, title, content, is_active) VALUES ($1, $2, $3, $4) RETURNING id, updated_at",
+		page.Slug, page.Title, page.Content, page.IsActive).Scan(&page.ID, &page.UpdatedAt)
+}
+
+func (r *legalPageRepo) Update(ctx context.Context, page *domain.LegalPage) error {
+	_, err := r.pool.Exec(ctx,
+		"UPDATE legal_pages SET title = $1, content = $2, is_active = $3, updated_at = NOW() WHERE id = $4",
+		page.Title, page.Content, page.IsActive, page.ID)
+	return err
+}
+
+func (r *legalPageRepo) Delete(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, "DELETE FROM legal_pages WHERE id = $1", id)
+	return err
 }

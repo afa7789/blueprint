@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/afa/blueprint/backend/internal/domain"
@@ -15,30 +16,34 @@ import (
 
 type AuthHandler struct {
 	users domain.UserRepository
+	flags domain.FeatureFlagRepository
+	rdb   *redis.Client
 	cfg   *config.Config
 }
 
-func NewAuthHandler(users domain.UserRepository, cfg *config.Config) *AuthHandler {
-	return &AuthHandler{users: users, cfg: cfg}
+func NewAuthHandler(users domain.UserRepository, flags domain.FeatureFlagRepository, rdb *redis.Client, cfg *config.Config) *AuthHandler {
+	return &AuthHandler{users: users, flags: flags, rdb: rdb, cfg: cfg}
 }
 
 type userResponse struct {
-	ID        string     `json:"id"`
-	Email     string     `json:"email"`
-	Name      *string    `json:"name"`
-	Role      string     `json:"role"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID            string     `json:"id"`
+	Email         string     `json:"email"`
+	Name          *string    `json:"name"`
+	Role          string     `json:"role"`
+	EmailVerified bool       `json:"email_verified"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 func toUserResponse(u *domain.User) userResponse {
 	return userResponse{
-		ID:        u.ID,
-		Email:     u.Email,
-		Name:      u.Name,
-		Role:      u.Role,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:            u.ID,
+		Email:         u.Email,
+		Name:          u.Name,
+		Role:          u.Role,
+		EmailVerified: u.EmailVerified,
+		CreatedAt:     u.CreatedAt,
+		UpdatedAt:     u.UpdatedAt,
 	}
 }
 
@@ -120,6 +125,27 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		return c.Status(409).JSON(fiber.Map{"error": "email already in use"})
 	}
 
+	// Check if email verification is required via feature flag
+	if h.flags != nil {
+		flag, err := h.flags.GetByKey(c.Context(), "email_verification_required")
+		if err == nil && flag.Enabled {
+			token := uuid.NewString()
+			if h.rdb != nil {
+				h.rdb.Set(c.Context(), "verify:"+token, u.ID, 24*time.Hour)
+			}
+			// TODO: Send verification email (placeholder for now)
+			return c.Status(201).JSON(fiber.Map{
+				"message":               "registration successful, please verify your email",
+				"user":                  toUserResponse(u),
+				"verification_required": true,
+			})
+		}
+	}
+
+	// Verification not required — auto-verify
+	_ = h.users.VerifyEmail(c.Context(), u.ID)
+	u.EmailVerified = true
+
 	accessToken, refreshToken, err := h.generateTokens(u.ID, u.Role)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "could not generate tokens"})
@@ -127,8 +153,8 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	h.setTokenCookies(c, accessToken, refreshToken)
 
 	return c.Status(201).JSON(fiber.Map{
-		"user":          toUserResponse(u),
-		"access_token":  accessToken,
+		"user":         toUserResponse(u),
+		"access_token": accessToken,
 	})
 }
 
@@ -148,6 +174,16 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(req.Password)); err != nil {
 		return c.Status(401).JSON(fiber.Map{"error": "invalid credentials"})
+	}
+
+	if !u.EmailVerified && h.flags != nil {
+		flag, err := h.flags.GetByKey(c.Context(), "email_verification_required")
+		if err == nil && flag.Enabled {
+			return c.Status(403).JSON(fiber.Map{
+				"error":                 "email not verified",
+				"verification_required": true,
+			})
+		}
 	}
 
 	accessToken, refreshToken, err := h.generateTokens(u.ID, u.Role)
@@ -231,4 +267,45 @@ func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 	}
 	// Placeholder: in production, validate token and update password
 	return c.JSON(fiber.Map{"message": "password reset successful"})
+}
+
+func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := c.BodyParser(&req); err != nil || req.Token == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "token is required"})
+	}
+
+	if h.rdb == nil {
+		return c.Status(500).JSON(fiber.Map{"error": "verification not available"})
+	}
+
+	userID, err := h.rdb.Get(c.Context(), "verify:"+req.Token).Result()
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid or expired token"})
+	}
+
+	if err := h.users.VerifyEmail(c.Context(), userID); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "verification failed"})
+	}
+
+	h.rdb.Del(c.Context(), "verify:"+req.Token)
+
+	u, err := h.users.FindByID(c.Context(), userID)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "verification failed"})
+	}
+
+	accessToken, refreshToken, err := h.generateTokens(u.ID, u.Role)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "could not generate tokens"})
+	}
+	h.setTokenCookies(c, accessToken, refreshToken)
+
+	return c.JSON(fiber.Map{
+		"message":      "email verified",
+		"user":         toUserResponse(u),
+		"access_token": accessToken,
+	})
 }

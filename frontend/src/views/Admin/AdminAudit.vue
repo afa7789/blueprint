@@ -1,5 +1,9 @@
 <template>
   <div>
+    <HelperBox
+      title="Audit Trail"
+      description="All admin POST/PUT/DELETE actions are logged automatically. Filter by user, action type, resource, or date range to investigate changes."
+    />
     <h2>Audit Trail</h2>
 
     <!-- Filters -->
@@ -59,6 +63,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface AuditEntry {
   id: string

@@ -12,6 +12,14 @@ type UserRepository interface {
 	Update(ctx context.Context, u *User) error
 	Delete(ctx context.Context, id string) error
 	List(ctx context.Context, offset, limit int) ([]User, int, error)
+	VerifyEmail(ctx context.Context, userID string) error
+	UpdateStripeCustomerID(ctx context.Context, userID, customerID string) error
+}
+
+type SecuritySettingRepository interface {
+	GetAll(ctx context.Context) ([]SecuritySetting, error)
+	GetByKey(ctx context.Context, key string) (*SecuritySetting, error)
+	Update(ctx context.Context, key, value string) error
 }
 
 type FeatureFlagRepository interface {
@@ -144,4 +152,17 @@ type AppLogRepository interface {
 type LogConfigRepository interface {
 	Get(ctx context.Context) (*LogConfig, error)
 	Update(ctx context.Context, cfg *LogConfig) error
+}
+
+type LegalPageRepository interface {
+	FindBySlug(ctx context.Context, slug string) (*LegalPage, error)
+	List(ctx context.Context, activeOnly bool) ([]LegalPage, error)
+	Create(ctx context.Context, page *LegalPage) error
+	Update(ctx context.Context, page *LegalPage) error
+	Delete(ctx context.Context, id string) error
+}
+
+type UserProfileRepository interface {
+	FindByUserID(ctx context.Context, userID string) (*UserProfile, error)
+	Upsert(ctx context.Context, p *UserProfile) error
 }

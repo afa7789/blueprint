@@ -1,5 +1,6 @@
 <template>
   <div>
+    <HelperBox title="Email System" description="Sending emails requires SMTP configuration." envVar="SMTP_HOST, SMTP_PORT" featureFlag="email_auto_enabled" />
     <h2>Email Groups</h2>
     <div v-if="error" class="error">{{ error }}</div>
 
@@ -62,6 +63,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { api } from '../../services/api'
+import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface Group {
   id: string
