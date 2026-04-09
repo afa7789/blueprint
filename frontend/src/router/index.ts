@@ -98,6 +98,7 @@ const routes = [
     children: [
       { path: '', redirect: '/admin/users' },
       { path: 'users', name: 'AdminUsers', component: () => import('../views/Admin/AdminUsers.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
+      { path: 'waitlist', name: 'AdminWaitlist', component: () => import('../views/Admin/AdminWaitlist.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'features', name: 'AdminFeatureFlags', component: () => import('../views/Admin/AdminFeatureFlags.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'banners', name: 'AdminBanners', component: () => import('../views/Admin/AdminBanners.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'linktree', name: 'AdminLinktree', component: () => import('../views/Admin/AdminLinktree.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },

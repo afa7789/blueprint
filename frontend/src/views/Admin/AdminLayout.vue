@@ -7,6 +7,7 @@
       <nav>
         <h3>Admin</h3>
         <router-link to="/admin/users" @click="sidebarOpen = false"><i class="fas fa-users"></i> Users</router-link>
+        <router-link to="/admin/waitlist" @click="sidebarOpen = false"><i class="fas fa-clipboard-list"></i> Waitlist</router-link>
         <router-link to="/admin/features" @click="sidebarOpen = false"><i class="fas fa-toggle-on"></i> Feature Flags</router-link>
         <router-link to="/admin/banners" @click="sidebarOpen = false"><i class="fas fa-image"></i> Banners</router-link>
         <router-link to="/admin/linktree" @click="sidebarOpen = false"><i class="fas fa-link"></i> Linktree</router-link>
