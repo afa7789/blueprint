@@ -72,3 +72,10 @@ deploy:
 
 deploy-dry:
 	bash scripts/deploy.sh --all --dry-run
+
+# === Admin User ===
+
+# Promote user to admin (user must already exist - register first at /register)
+# make promote-admin email=example@e-mail.com
+promote-admin:
+	@docker compose exec -T postgres psql -U blueprint -d blueprint -c "UPDATE users SET role = 'admin' WHERE email = '$(email)';"

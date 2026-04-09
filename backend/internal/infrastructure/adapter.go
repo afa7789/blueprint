@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/afa/blueprint/backend/internal/domain"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -91,7 +92,9 @@ func (r *userRepo) UpdateStripeCustomerID(ctx context.Context, userID, customerI
 
 type userProfileRepo struct{ pool *pgxpool.Pool }
 
-func NewUserProfileRepo(pool *pgxpool.Pool) domain.UserProfileRepository { return &userProfileRepo{pool} }
+func NewUserProfileRepo(pool *pgxpool.Pool) domain.UserProfileRepository {
+	return &userProfileRepo{pool}
+}
 
 func (r *userProfileRepo) FindByUserID(ctx context.Context, userID string) (*domain.UserProfile, error) {
 	row := r.pool.QueryRow(ctx,
@@ -152,7 +155,9 @@ func (r *securitySettingRepo) Update(ctx context.Context, key, value string) err
 
 type featureFlagRepo struct{ pool *pgxpool.Pool }
 
-func NewFeatureFlagRepo(pool *pgxpool.Pool) domain.FeatureFlagRepository { return &featureFlagRepo{pool} }
+func NewFeatureFlagRepo(pool *pgxpool.Pool) domain.FeatureFlagRepository {
+	return &featureFlagRepo{pool}
+}
 
 func (r *featureFlagRepo) GetAll(ctx context.Context) ([]domain.FeatureFlag, error) {
 	rows, err := r.pool.Query(ctx, `SELECT id,key,enabled,updated_at FROM feature_flags`)
@@ -652,6 +657,9 @@ func (r *brandKitRepo) Get(ctx context.Context) (*domain.BrandKit, error) {
 }
 
 func (r *brandKitRepo) Upsert(ctx context.Context, bk *domain.BrandKit) error {
+	if bk.ID == "" {
+		bk.ID = uuid.NewString()
+	}
 	return r.pool.QueryRow(ctx,
 		`INSERT INTO brand_kit(id,primary_color,secondary_color,logo_url,favicon_url,font_family,updated_at)
 		 VALUES($1,$2,$3,$4,$5,$6,NOW())

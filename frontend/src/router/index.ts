@@ -110,6 +110,7 @@ const routes = [
       { path: 'audit', name: 'AdminAudit', component: () => import('../views/Admin/AdminAudit.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'legal', name: 'AdminLegal', component: () => import('../views/Admin/AdminLegal.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
       { path: 'security', name: 'AdminSecurity', component: () => import('../views/Admin/AdminSecurity.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
+      { path: 'config', name: 'AdminConfig', component: () => import('../views/Admin/AdminConfig.vue'), meta: { requiresAuth: true, requiresRole: 'admin' } },
     ]
   },
 ]

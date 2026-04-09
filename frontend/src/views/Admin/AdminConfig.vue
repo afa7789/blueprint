@@ -44,10 +44,14 @@ function exportEnv() {
 async function doImport() {
   if (!importText.value.trim()) return
   try {
-    const result = await api.post<{ updated: number; skipped: number; message: string; errors?: string[] }>(
-      '/api/v1/admin/config/import',
-      importText.value
-    )
+    const API_URL = import.meta.env.VITE_API_URL ?? ''
+    const res = await fetch(`${API_URL}/api/v1/admin/config/import`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'text/plain' },
+      body: importText.value,
+    })
+    const result = await res.json() as { updated: number; skipped: number; message: string; errors?: string[] }
     importResult.value = result
     await load()
   } catch (e: any) {

@@ -18,6 +18,7 @@
         <router-link to="/admin/audit" @click="sidebarOpen = false">Audit</router-link>
         <router-link to="/admin/legal" @click="sidebarOpen = false">Legal Pages</router-link>
         <router-link to="/admin/security" @click="sidebarOpen = false">Security</router-link>
+        <router-link to="/admin/config" @click="sidebarOpen = false">Config / ENV</router-link>
       </nav>
     </aside>
     <main class="admin-main">

@@ -177,7 +177,9 @@ func main() {
 	user.Delete("/saved-cards/:id", userHandler.DeleteSavedCard)
 
 	api.Get("/features", flagHandler.GetAll)
-	api.Put("/admin/features/:key", middleware.RequireAuth(cfg), middleware.RequireRole("admin"), flagHandler.Toggle)
+	admin := api.Group("/admin", middleware.RequireAuth(cfg), middleware.RequireRole("admin"))
+	admin.Get("/features", flagHandler.GetAll)
+	admin.Put("/features/:key", flagHandler.Toggle)
 
 	// Legal pages (public)
 	api.Get("/legal", legalHandler.ListActive)
