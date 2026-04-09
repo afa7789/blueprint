@@ -62,7 +62,7 @@ func main() {
 	app.Use(recover.New())
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.FrontendURL,
+		AllowOrigins:     cfg.FrontendURL + ", http://localhost:5173, http://localhost:3000, http://localhost, https://*.ngrok-free.app, https://*.ngrok-free.dev",
 		AllowCredentials: true,
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 	}))
@@ -115,6 +115,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(userRepo, flagRepo, rdb, cfg)
 	userHandler := handlers.NewUserHandler(userRepo, profileRepo, cfg)
 	securityHandler := handlers.NewSecurityHandler(securitySettingsRepo)
+	envConfigHandler := handlers.NewEnvConfigHandler(securitySettingsRepo, flagRepo, cfg)
 	flagHandler := handlers.NewFeatureFlagHandler(flagRepo)
 	waitlistHandler := handlers.NewWaitlistHandler(waitlistRepo)
 	adminHandler := handlers.NewAdminHandler(userRepo, bannerRepo, linktreeRepo, brandKitRepo, emailGroupRepo, emailSubRepo, userGroupRepo, cfg)
@@ -325,6 +326,11 @@ func main() {
 	// Security settings admin
 	admin.Get("/security", securityHandler.ListSettings)
 	admin.Put("/security/:key", securityHandler.UpdateSetting)
+
+	// ENV/Config panel
+	admin.Get("/config/env", envConfigHandler.GetEnvStatus)
+	admin.Get("/config/export", envConfigHandler.ExportEnv)
+	admin.Post("/config/import", envConfigHandler.ImportEnv)
 
 	// Static file serving
 	app.Static("/static", cfg.UploadDir)
