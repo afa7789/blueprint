@@ -183,9 +183,28 @@
       <section class="form-section">
         <h3 class="section-title">Preview</h3>
         <div class="preview" :style="previewStyles">
-          <h3>Preview</h3>
-          <p>Sample text with <code>inline code</code></p>
-          <button type="button">Accent Button</button>
+          <div class="preview-header">
+            <div class="preview-brand">
+              <img v-if="form.logo_url" :src="form.logo_url" alt="Logo" class="preview-logo" />
+              <img v-if="form.favicon_url" :src="form.favicon_url" alt="Favicon" class="preview-favicon" />
+            </div>
+            <h3 :style="{ fontFamily: form.heading_font || 'inherit' }">Heading Preview</h3>
+          </div>
+          <p :style="{ fontFamily: form.font_family || 'inherit' }">
+            Body text looks like this. Here is some <code :style="{ fontFamily: form.mono_font || 'monospace' }">inline code</code> too.
+          </p>
+          <div class="preview-row">
+            <button type="button" class="preview-btn">Accent Button</button>
+            <span class="preview-badge">Badge</span>
+            <span class="preview-link">Link text</span>
+          </div>
+          <div class="preview-colors">
+            <div class="preview-swatch" :style="{ background: form.accent_color }" title="accent"></div>
+            <div class="preview-swatch" :style="{ background: form.text_color }" title="text"></div>
+            <div class="preview-swatch" :style="{ background: form.bg_color, border: '1px solid ' + form.border_color }" title="bg"></div>
+            <div class="preview-swatch" :style="{ background: form.border_color }" title="border"></div>
+            <div class="preview-swatch" :style="{ background: form.code_bg_color }" title="code-bg"></div>
+          </div>
         </div>
       </section>
 
@@ -410,15 +429,92 @@ onMounted(load)
 }
 
 .preview {
-  padding: 16px;
+  padding: 24px;
   border: 1px solid;
-  border-radius: 6px;
+  border-radius: 8px;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.preview-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-logo {
+  height: 28px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+}
+
+.preview-favicon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 2px;
 }
 
 .preview h3 {
-  margin: 0 0 8px;
-  font-size: 15px;
-  color: var(--preview-heading, var(--text-h));
+  margin: 0;
+  font-size: 18px;
+}
+
+.preview p {
+  font-size: 14px;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.preview code {
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.preview-btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.preview-badge {
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.preview-link {
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.preview-colors {
+  display: flex;
+  gap: 6px;
+}
+
+.preview-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.1);
 }
 
 .preview p {
