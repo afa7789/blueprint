@@ -1215,3 +1215,24 @@ func (r *legalPageRepo) Delete(ctx context.Context, id string) error {
 	_, err := r.pool.Exec(ctx, "DELETE FROM legal_pages WHERE id = $1", id)
 	return err
 }
+
+// ---- PixConfig ----
+
+type pixConfigRepo struct{ pool *pgxpool.Pool }
+
+func NewPixConfigRepo(pool *pgxpool.Pool) domain.PixConfigRepository { return &pixConfigRepo{pool} }
+
+func (r *pixConfigRepo) Get(ctx context.Context) (*domain.PixConfig, error) {
+	cfg := &domain.PixConfig{}
+	err := r.pool.QueryRow(ctx,
+		`SELECT id, pix_key, key_type, beneficiary, city, updated_at FROM pix_config LIMIT 1`,
+	).Scan(&cfg.ID, &cfg.PixKey, &cfg.KeyType, &cfg.Beneficiary, &cfg.City, &cfg.UpdatedAt)
+	return cfg, err
+}
+
+func (r *pixConfigRepo) Update(ctx context.Context, cfg *domain.PixConfig) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE pix_config SET pix_key=$1, key_type=$2, beneficiary=$3, city=$4, updated_at=NOW() WHERE id=1`,
+		cfg.PixKey, cfg.KeyType, cfg.Beneficiary, cfg.City)
+	return err
+}

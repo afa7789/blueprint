@@ -122,6 +122,7 @@ func main() {
 	categoryRepo := infrastructure.NewCategoryRepo(pool)
 	orderRepo := infrastructure.NewOrderRepo(pool)
 	couponRepo := infrastructure.NewCouponRepo(pool)
+	pixConfigRepo := infrastructure.NewPixConfigRepo(pool)
 	securitySettingsRepo := infrastructure.NewSecuritySettingRepo(pool)
 	profileRepo := infrastructure.NewUserProfileRepo(pool)
 
@@ -152,7 +153,7 @@ func main() {
 	adminHandler := handlers.NewAdminHandler(userRepo, bannerRepo, linktreeRepo, brandKitRepo, emailGroupRepo, emailSubRepo, userGroupRepo, cfg)
 	storeHandler := handlers.NewStoreHandler(productRepo, categoryRepo, orderRepo, couponRepo, cfg)
 	couponHandler := handlers.NewCouponHandler(couponRepo)
-	paymentHandler := handlers.NewPaymentHandler(orderRepo, cfg)
+	paymentHandler := handlers.NewPaymentHandler(orderRepo, pixConfigRepo, cfg)
 	blogRepo := infrastructure.NewBlogRepo(pool)
 	blogHandler := handlers.NewBlogHandler(blogRepo, cfg)
 	cronJobRepo := infrastructure.NewCronJobRepo(pool)
@@ -288,6 +289,8 @@ func main() {
 	api.Post("/payments/pix", middleware.RequireAuth(cfg), paymentHandler.CreatePixPayment)
 	api.Post("/payments/pix/:order_id/receipt", middleware.RequireAuth(cfg), paymentHandler.UploadPixReceipt)
 	admin.Put("/orders/:id/approve-pix", paymentHandler.ApprovePixPayment)
+	admin.Get("/pix-config", paymentHandler.GetPixConfig)
+	admin.Put("/pix-config", paymentHandler.UpdatePixConfig)
 
 	// Coupon — public validate
 	api.Post("/coupons/validate", couponHandler.ValidateCoupon)

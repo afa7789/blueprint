@@ -167,3 +167,8 @@ type UserProfileRepository interface {
 	FindByUserID(ctx context.Context, userID string) (*UserProfile, error)
 	Upsert(ctx context.Context, p *UserProfile) error
 }
+
+type PixConfigRepository interface {
+	Get(ctx context.Context) (*PixConfig, error)
+	Update(ctx context.Context, cfg *PixConfig) error
+}

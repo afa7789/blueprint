@@ -69,9 +69,17 @@
           </template>
           <template v-else-if="orderResult.method === 'pix_manual'">
             <p class="pix-title">PIX Payment</p>
+            <p v-if="orderResult.beneficiary">Beneficiary: {{ orderResult.beneficiary }}</p>
+            <p v-if="orderResult.amount">Amount: R$ {{ Number(orderResult.amount).toFixed(2) }}</p>
+            <div class="pix-qr-container">
+              <img v-if="qrImageUrl" :src="qrImageUrl" alt="PIX QR Code" class="pix-qr-img" />
+              <p v-else class="pix-qr">Generating QR code...</p>
+            </div>
+            <p v-if="orderResult.brcode" class="pix-copy">
+              <button type="button" class="btn btn-secondary" @click="copyBrcode">Copy PIX code</button>
+            </p>
             <p>Transfer the order total via PIX, then upload your payment receipt below.</p>
             <p class="pix-txid">Order ID: <code class="mono">{{ orderResult.orderId }}</code></p>
-            <p class="pix-txid">Total: R$ {{ (cart.total / 100).toFixed(2) }}</p>
 
             <div v-if="!receiptUploaded" class="receipt-upload">
               <h4>Upload Payment Receipt</h4>
@@ -124,6 +132,7 @@ import { useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cart'
 import { api } from '../../services/api'
 import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlags'
+import QRCode from 'qrcode'
 
 const cart = useCartStore()
 const router = useRouter()
@@ -132,7 +141,8 @@ const shipping = ref({ name: '', street: '', city: '', state: '', zip: '' })
 const paymentMethod = ref('')
 const submitting = ref(false)
 const orderError = ref('')
-const orderResult = ref<{ method: string; orderId: string; txId?: string } | null>(null)
+const orderResult = ref<{ method: string; orderId: string; txId?: string; brcode?: string; beneficiary?: string; amount?: number } | null>(null)
+const qrImageUrl = ref('')
 const receiptFile = ref<File | null>(null)
 const uploadingReceipt = ref(false)
 const receiptUploaded = ref(false)
@@ -185,6 +195,12 @@ async function uploadReceipt() {
   }
 }
 
+function copyBrcode() {
+  if (orderResult.value?.brcode) {
+    navigator.clipboard.writeText(orderResult.value.brcode)
+  }
+}
+
 async function placeOrder() {
   submitting.value = true
   orderError.value = ''
@@ -202,8 +218,15 @@ async function placeOrder() {
       orderResult.value = { method: 'stripe', orderId }
     } else if (paymentMethod.value === 'pix_auto' || paymentMethod.value === 'pix_manual') {
       try {
-        const pix = await api.post<{ tx_id: string }>('/api/v1/payments/pix', { order_id: orderId })
-        orderResult.value = { method: paymentMethod.value, orderId, txId: pix.tx_id }
+        const pix = await api.post<{ tx_id: string; brcode?: string; beneficiary?: string; amount?: number }>('/api/v1/payments/pix', { order_id: orderId })
+        orderResult.value = { method: paymentMethod.value, orderId, txId: pix.tx_id, brcode: pix.brcode, beneficiary: pix.beneficiary, amount: pix.amount }
+        if (pix.brcode) {
+          try {
+            qrImageUrl.value = await QRCode.toDataURL(pix.brcode, { width: 256, margin: 2 })
+          } catch {
+            qrImageUrl.value = ''
+          }
+        }
       } catch {
         orderResult.value = { method: paymentMethod.value, orderId }
       }
@@ -417,6 +440,29 @@ async function placeOrder() {
   font-weight: 600;
   font-size: 16px;
   color: var(--text-h);
+  margin-bottom: 12px;
+}
+
+.pix-qr-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.pix-qr-img {
+  width: 256px;
+  height: 256px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.btn-secondary {
+  background: var(--code-bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+
+.pix-copy {
   margin-bottom: 12px;
 }
 

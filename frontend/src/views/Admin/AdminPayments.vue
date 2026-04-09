@@ -70,6 +70,33 @@
       </router-link>
     </div>
 
+    <!-- Section PIX Configuration -->
+    <h2>PIX Configuration</h2>
+    <div v-if="pixSaveError" class="error">{{ pixSaveError }}</div>
+    <div v-if="pixSaveSuccess" class="success">PIX config saved.</div>
+    <section class="section-card">
+      <div class="pix-form">
+        <label>PIX Key Type
+          <select v-model="pixForm.key_type" class="input">
+            <option value="cpf">CPF</option>
+            <option value="email">Email</option>
+            <option value="phone">Phone</option>
+            <option value="random">Random Key</option>
+          </select>
+        </label>
+        <label>PIX Key
+          <input v-model="pixForm.pix_key" class="input" placeholder="Your PIX key (CPF, email, phone, or random)" />
+        </label>
+        <label>Beneficiary Name (max 25 chars)
+          <input v-model="pixForm.beneficiary" class="input" maxlength="25" placeholder="Joao Silva" />
+        </label>
+        <label>City (max 15 chars)
+          <input v-model="pixForm.city" class="input" maxlength="15" placeholder="SAO PAULO" />
+        </label>
+        <button class="btn-primary" @click="savePixConfig">Save PIX Config</button>
+      </div>
+    </section>
+
     <!-- Section 3: Payment Flags -->
     <h2>Payment Feature Flags</h2>
     <div v-if="flagsError" class="error">{{ flagsError }}</div>
@@ -152,6 +179,16 @@ const ordersError = ref('')
 
 const stripeConfigured = ref(false)
 
+interface PixForm {
+  key_type: string
+  pix_key: string
+  beneficiary: string
+  city: string
+}
+const pixForm = ref<PixForm>({ key_type: 'random', pix_key: '', beneficiary: '', city: '' })
+const pixSaveError = ref('')
+const pixSaveSuccess = ref(false)
+
 const paymentFlags = computed(() =>
   allFlags.value.filter(f => PAYMENT_FLAG_KEYS.includes(f.key))
 )
@@ -218,8 +255,29 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString()
 }
 
+async function loadPixConfig() {
+  try {
+    const data = await api.get<PixForm>('/api/v1/admin/pix-config')
+    pixForm.value = { key_type: data.key_type || 'random', pix_key: data.pix_key || '', beneficiary: data.beneficiary || '', city: data.city || '' }
+  } catch {
+    // non-fatal
+  }
+}
+
+async function savePixConfig() {
+  pixSaveError.value = ''
+  pixSaveSuccess.value = false
+  try {
+    await api.put('/api/v1/admin/pix-config', pixForm.value)
+    pixSaveSuccess.value = true
+    setTimeout(() => { pixSaveSuccess.value = false }, 3000)
+  } catch (e: unknown) {
+    pixSaveError.value = e instanceof Error ? e.message : 'Failed to save PIX config'
+  }
+}
+
 onMounted(async () => {
-  await Promise.all([loadFlags(), loadEnv(), loadOrders()])
+  await Promise.all([loadFlags(), loadEnv(), loadOrders(), loadPixConfig()])
 })
 </script>
 
@@ -437,6 +495,60 @@ h2 {
 .status-delivered { background: rgba(34, 197, 94, 0.2); color: #15803d; }
 .status-cancelled { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
 .status-awaiting_approval { background: rgba(168, 85, 247, 0.15); color: #9333ea; }
+
+.section-card {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 8px;
+}
+
+.pix-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pix-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  padding: 10px 20px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  align-self: flex-start;
+}
+
+.success {
+  color: #22c55e;
+  padding: 10px 12px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
 
 .error {
   color: #ef4444;

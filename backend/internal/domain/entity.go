@@ -273,6 +273,16 @@ type LogConfig struct {
 	MinLevel      string `json:"min_level"`
 }
 
+// PixConfig holds the admin's PIX payment configuration
+type PixConfig struct {
+	ID          int       `json:"id"`
+	PixKey      string    `json:"pix_key"`
+	KeyType     string    `json:"key_type"` // cpf, email, phone, random
+	Beneficiary string    `json:"beneficiary"`
+	City        string    `json:"city"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 // LegalPage represents a legal page (Terms, Privacy, etc.)
 type LegalPage struct {
 	ID        string    `json:"id"`

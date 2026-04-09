@@ -5,6 +5,7 @@ import (
 
 	"github.com/afa/blueprint/backend/internal/domain"
 	"github.com/afa/blueprint/backend/pkg/config"
+	"github.com/afa/blueprint/backend/pkg/pix"
 	"github.com/gofiber/fiber/v2"
 	stripe "github.com/stripe/stripe-go/v82"
 	"github.com/stripe/stripe-go/v82/paymentintent"
@@ -12,12 +13,13 @@ import (
 )
 
 type PaymentHandler struct {
-	orders domain.OrderRepository
-	cfg    *config.Config
+	orders  domain.OrderRepository
+	pixCfg  domain.PixConfigRepository
+	cfg     *config.Config
 }
 
-func NewPaymentHandler(orders domain.OrderRepository, cfg *config.Config) *PaymentHandler {
-	return &PaymentHandler{orders: orders, cfg: cfg}
+func NewPaymentHandler(orders domain.OrderRepository, pixCfg domain.PixConfigRepository, cfg *config.Config) *PaymentHandler {
+	return &PaymentHandler{orders: orders, pixCfg: pixCfg, cfg: cfg}
 }
 
 type createPaymentRequest struct {
@@ -107,18 +109,54 @@ func (h *PaymentHandler) CreatePixPayment(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "order is not pending")
 	}
 
+	pixCfg, err := h.pixCfg.Get(c.Context())
+	if err != nil || pixCfg.PixKey == "" {
+		return c.Status(503).JSON(fiber.Map{
+			"error":        "PIX not configured",
+			"env_required": "Configure PIX in Admin > Payments",
+		})
+	}
+
 	txID := fmt.Sprintf("TX_%s", order.ID)
 	paymentMethod := "pix_manual"
 
-	if err := h.orders.UpdatePayment(c.Context(), order.ID, paymentMethod, txID); err != nil {
-		return err
-	}
+	h.orders.UpdatePayment(c.Context(), order.ID, paymentMethod, txID)
+
+	brcode := pix.GeneratePayload(pixCfg.PixKey, pixCfg.Beneficiary, pixCfg.City, int64(order.Total*100))
 
 	return c.JSON(fiber.Map{
-		"qr_code": fmt.Sprintf("PIX_QR_PLACEHOLDER_%s", order.ID),
-		"tx_id":   txID,
-		"message": "PIX integration pending - use manual approval",
+		"brcode":      brcode,
+		"tx_id":       txID,
+		"pix_key":     pixCfg.PixKey,
+		"beneficiary": pixCfg.Beneficiary,
+		"amount":      order.Total,
+		"message":     "Scan QR code to pay via PIX, then upload receipt",
 	})
+}
+
+func (h *PaymentHandler) GetPixConfig(c *fiber.Ctx) error {
+	cfg, err := h.pixCfg.Get(c.Context())
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to get PIX config"})
+	}
+	return c.JSON(cfg)
+}
+
+func (h *PaymentHandler) UpdatePixConfig(c *fiber.Ctx) error {
+	var cfg domain.PixConfig
+	if err := c.BodyParser(&cfg); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid request"})
+	}
+	if len(cfg.Beneficiary) > 25 {
+		cfg.Beneficiary = cfg.Beneficiary[:25]
+	}
+	if len(cfg.City) > 15 {
+		cfg.City = cfg.City[:15]
+	}
+	if err := h.pixCfg.Update(c.Context(), &cfg); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to update PIX config"})
+	}
+	return c.JSON(cfg)
 }
 
 func (h *PaymentHandler) UploadPixReceipt(c *fiber.Ctx) error {
