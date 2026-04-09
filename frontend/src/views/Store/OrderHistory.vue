@@ -55,8 +55,8 @@ async function fetchOrders() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ orders: Order[] }>('/api/v1/orders/me')
-    orders.value = data.orders || []
+    const data = await api.get<{ data: Order[] }>('/api/v1/orders/me')
+    orders.value = data.data || []
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load orders'
   } finally {

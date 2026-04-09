@@ -111,8 +111,8 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ banners: Banner[] }>('/api/v1/admin/banners')
-    banners.value = data.banners
+    const data = await api.get<{ data: Banner[] }>('/api/v1/admin/banners')
+    banners.value = data.data
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load banners'
   } finally {
@@ -134,12 +134,12 @@ async function save() {
   error.value = ''
   try {
     if (form.id) {
-      const data = await api.put<{ banner: Banner }>(`/api/v1/admin/banners/${form.id}`, form)
+      const data = await api.put<Banner>(`/api/v1/admin/banners/${form.id}`, form)
       const idx = banners.value.findIndex(b => b.id === form.id)
-      if (idx !== -1) banners.value[idx] = data.banner
+      if (idx !== -1) banners.value[idx] = data
     } else {
-      const data = await api.post<{ banner: Banner }>('/api/v1/admin/banners', form)
-      banners.value.push(data.banner)
+      const data = await api.post<Banner>('/api/v1/admin/banners', form)
+      banners.value.push(data)
     }
     showModal.value = false
   } catch (e: unknown) {

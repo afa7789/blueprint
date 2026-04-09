@@ -90,8 +90,8 @@ async function loadGroups() {
   loadingGroups.value = true
   error.value = ''
   try {
-    const data = await api.get<{ groups: Group[] }>('/api/v1/admin/email-groups')
-    groups.value = data.groups
+    const data = await api.get<{ data: Group[] }>('/api/v1/admin/email-groups')
+    groups.value = data.data
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load groups'
   } finally {
@@ -103,8 +103,8 @@ async function selectGroup(group: Group) {
   selectedGroup.value = group
   loadingSubs.value = true
   try {
-    const data = await api.get<{ subscribers: Subscriber[] }>(`/api/v1/admin/email-groups/${group.id}/subscribers`)
-    subscribers.value = data.subscribers
+    const data = await api.get<{ data: Subscriber[] }>(`/api/v1/admin/email-groups/${group.id}/subscribers`)
+    subscribers.value = data.data
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load subscribers'
   } finally {

@@ -102,8 +102,8 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ tools: Tool[] }>('/api/v1/admin/tools')
-    tools.value = data.tools
+    const data = await api.get<{ data: Tool[] }>('/api/v1/admin/tools')
+    tools.value = data.data
     pingAll()
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load tools'
@@ -140,16 +140,16 @@ async function saveTool() {
   if (!form.value.name) { formError.value = 'Name required'; return }
   try {
     if (editingId.value) {
-      const data = await api.put<{ tool: Tool }>(`/api/v1/admin/tools/${editingId.value}`, form.value)
+      const data = await api.put<Tool>(`/api/v1/admin/tools/${editingId.value}`, form.value)
       const idx = tools.value.findIndex(t => t.id === editingId.value)
-      if (idx !== -1) tools.value[idx] = data.tool
+      if (idx !== -1) tools.value[idx] = data
     } else {
-      const data = await api.post<{ tool: Tool }>('/api/v1/admin/tools', form.value)
-      tools.value.push(data.tool)
-      pingStatus.value[data.tool.id] = 'pending'
-      api.get(`/api/v1/admin/tools/${data.tool.id}/ping`)
-        .then(() => { pingStatus.value[data.tool.id] = 'up' })
-        .catch(() => { pingStatus.value[data.tool.id] = 'down' })
+      const data = await api.post<Tool>('/api/v1/admin/tools', form.value)
+      tools.value.push(data)
+      pingStatus.value[data.id] = 'pending'
+      api.get(`/api/v1/admin/tools/${data.id}/ping`)
+        .then(() => { pingStatus.value[data.id] = 'up' })
+        .catch(() => { pingStatus.value[data.id] = 'down' })
     }
     showForm.value = false
   } catch (e: unknown) {

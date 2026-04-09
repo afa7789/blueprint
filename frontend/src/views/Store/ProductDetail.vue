@@ -76,8 +76,8 @@ async function fetchProduct() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ product: Product }>(`/api/v1/products/${route.params.id}`)
-    product.value = data.product
+    const data = await api.get<Product>(`/api/v1/products/${route.params.id}`)
+    product.value = data
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load product'
   } finally {

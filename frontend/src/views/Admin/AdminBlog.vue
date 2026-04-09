@@ -141,8 +141,8 @@ async function fetchPosts() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ posts: Post[] }>('/api/v1/admin/blog')
-    posts.value = data.posts || []
+    const data = await api.get<{ data: Post[] }>('/api/v1/admin/blog')
+    posts.value = data.data || []
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load posts'
   } finally {

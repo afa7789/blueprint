@@ -61,10 +61,8 @@ interface Category {
 }
 
 interface ProductsResponse {
-  products: Product[]
+  data: Product[]
   total: number
-  page: number
-  limit: number
 }
 
 const products = ref<Product[]>([])
@@ -83,8 +81,8 @@ async function fetchProducts(p = 1) {
     let url = `/api/v1/products?page=${p}&limit=${limit}`
     if (selectedCategory.value) url += `&category_id=${selectedCategory.value}`
     const data = await api.get<ProductsResponse>(url)
-    products.value = data.products || []
-    page.value = data.page || p
+    products.value = data.data || []
+    page.value = p
     totalPages.value = Math.ceil((data.total || 0) / limit)
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load products'
@@ -95,8 +93,8 @@ async function fetchProducts(p = 1) {
 
 async function fetchCategories() {
   try {
-    const data = await api.get<{ categories: Category[] }>('/api/v1/products/categories')
-    categories.value = data.categories || []
+    const data = await api.get<Category[]>('/api/v1/products/categories')
+    categories.value = data || []
   } catch {
     // categories optional
   }

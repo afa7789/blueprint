@@ -116,8 +116,8 @@ async function loadLogs() {
     if (filters.value.search) params.set('search', filters.value.search)
     if (filters.value.from) params.set('from', filters.value.from)
     if (filters.value.to) params.set('to', filters.value.to)
-    const data = await api.get<{ logs: LogEntry[] }>(`/api/v1/admin/logs?${params}`)
-    logs.value = data.logs
+    const data = await api.get<{ data: LogEntry[] }>(`/api/v1/admin/logs?${params}`)
+    logs.value = data.data
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load logs'
   } finally {

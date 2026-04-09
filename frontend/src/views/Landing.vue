@@ -6,7 +6,7 @@ import WaitlistForm from '../components/landing/WaitlistForm.vue'
   <div class="landing">
     <!-- Hero with banner -->
     <section class="hero">
-      <img src="/banner.svg" alt="Blueprint" class="hero-banner" />
+      <img src="/banner-thin.svg" alt="Blueprint" class="hero-banner" />
       <h1>The <span class="accent">Starter Kit</span> for Modern Services</h1>
       <p class="hero-description">
         Full-stack foundation with Go + Vue 3. Landing page, admin panel, e-commerce, payments,
@@ -109,7 +109,6 @@ import WaitlistForm from '../components/landing/WaitlistForm.vue'
 
 /* Hero */
 .hero {
-  padding: 60px 20px 48px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -119,8 +118,7 @@ import WaitlistForm from '../components/landing/WaitlistForm.vue'
 }
 
 .hero-banner {
-  width: 280px;
-  max-width: 80%;
+  max-width: 100%;
   height: auto;
   margin-bottom: 8px;
 }
@@ -148,7 +146,7 @@ import WaitlistForm from '../components/landing/WaitlistForm.vue'
 .hero-links {
   display: flex;
   gap: 12px;
-  margin-top: 8px;
+  margin-bottom: 20px;
 }
 
 /* Buttons */

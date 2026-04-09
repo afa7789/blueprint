@@ -97,8 +97,8 @@ async function loadAudit() {
     if (filters.value.resource) params.set('resource', filters.value.resource)
     if (filters.value.from) params.set('from', filters.value.from)
     if (filters.value.to) params.set('to', filters.value.to)
-    const data = await api.get<{ entries: AuditEntry[] }>(`/api/v1/admin/audit?${params}`)
-    entries.value = data.entries
+    const data = await api.get<{ data: AuditEntry[] }>(`/api/v1/admin/audit?${params}`)
+    entries.value = data.data
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load audit log'
   } finally {

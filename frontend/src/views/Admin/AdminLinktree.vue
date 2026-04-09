@@ -87,8 +87,8 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ items: LinkItem[] }>('/api/v1/admin/linktree')
-    items.value = data.items
+    const data = await api.get<{ data: LinkItem[] }>('/api/v1/admin/linktree')
+    items.value = data.data
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load linktree'
   } finally {
@@ -131,12 +131,12 @@ async function save() {
   error.value = ''
   try {
     if (form.id) {
-      const data = await api.put<{ item: LinkItem }>(`/api/v1/admin/linktree/${form.id}`, form)
+      const data = await api.put<LinkItem>(`/api/v1/admin/linktree/${form.id}`, form)
       const idx = items.value.findIndex(i => i.id === form.id)
-      if (idx !== -1) items.value[idx] = data.item
+      if (idx !== -1) items.value[idx] = data
     } else {
-      const data = await api.post<{ item: LinkItem }>('/api/v1/admin/linktree', form)
-      items.value.push(data.item)
+      const data = await api.post<LinkItem>('/api/v1/admin/linktree', form)
+      items.value.push(data)
     }
     showModal.value = false
   } catch (e: unknown) {

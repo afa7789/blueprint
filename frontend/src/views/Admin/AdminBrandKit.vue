@@ -50,7 +50,7 @@ interface BrandKit {
 }
 
 const form = reactive<BrandKit>({
-  primary_color: '#aa3bff',
+  primary_color: '#2644ec',
   secondary_color: '#08060d',
   logo_url: '',
   favicon_url: '',
@@ -65,8 +65,8 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ brand_kit: BrandKit }>('/api/v1/admin/brand-kit')
-    Object.assign(form, data.brand_kit)
+    const data = await api.get<BrandKit>('/api/v1/admin/brand-kit')
+    Object.assign(form, data)
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load brand kit'
   } finally {
