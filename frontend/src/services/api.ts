@@ -8,12 +8,40 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+let refreshing: Promise<boolean> | null = null
+
+async function tryRefresh(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+async function request<T>(path: string, options?: RequestInit, retry = true): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
   })
+
+  // Auto-refresh on 401 (expired access token)
+  if (res.status === 401 && retry && !path.includes('/auth/refresh')) {
+    if (!refreshing) {
+      refreshing = tryRefresh()
+    }
+    const refreshed = await refreshing
+    refreshing = null
+
+    if (refreshed) {
+      return request<T>(path, options, false) // retry once
+    }
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))
     throw new ApiError(res.status, body.error || res.statusText)

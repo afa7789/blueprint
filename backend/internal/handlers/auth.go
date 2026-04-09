@@ -83,7 +83,7 @@ func (h *AuthHandler) setTokenCookies(c *fiber.Ctx, accessToken, refreshToken st
 		HTTPOnly: true,
 		Secure:   h.cfg.Env != "development",
 		SameSite: "Lax",
-		MaxAge:   int(h.cfg.JWTExpiry.Seconds()),
+		MaxAge:   int(h.cfg.RefreshExpiry.Seconds()), // cookie lives as long as refresh token; JWT itself validates expiry
 		Path:     "/",
 	})
 	c.Cookie(&fiber.Cookie{
@@ -93,7 +93,7 @@ func (h *AuthHandler) setTokenCookies(c *fiber.Ctx, accessToken, refreshToken st
 		Secure:   h.cfg.Env != "development",
 		SameSite: "Lax",
 		MaxAge:   int(h.cfg.RefreshExpiry.Seconds()),
-		Path:     "/api/v1/auth",
+		Path:     "/",  // available on all paths so frontend can auto-refresh
 	})
 }
 
@@ -237,7 +237,7 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 		Name:    "refresh_token",
 		Value:   "",
 		MaxAge:  -1,
-		Path:    "/api/v1/auth",
+		Path:    "/",
 	})
 	return c.JSON(fiber.Map{"message": "logged out"})
 }
