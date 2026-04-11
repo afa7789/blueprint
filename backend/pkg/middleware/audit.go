@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 
@@ -62,7 +63,7 @@ func AuditLog(repo domain.AuditLogRepository) fiber.Handler {
 
 		// Non-blocking
 		go func() {
-			_ = repo.Create(c.Context(), entry)
+			_ = repo.Create(context.Background(), entry)
 		}()
 
 		return err

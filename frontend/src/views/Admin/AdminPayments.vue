@@ -4,6 +4,7 @@
       title="Payments"
       description="Configure payment methods and monitor transactions. Stripe requires a secret key, PIX manual uses admin approval."
       envVar="STRIPE_KEY, STRIPE_WEBHOOK_SECRET"
+      featureFlag="payments_stripe, payments_pix, pix_auto_enabled, pix_manual_enabled"
     />
 
     <h2>Payment Methods</h2>
@@ -142,7 +143,7 @@
           <td>
             <span class="status-badge" :class="`status-${order.status}`">{{ order.status }}</span>
           </td>
-          <td>${{ (order.total / 100).toFixed(2) }}</td>
+          <td>{{ formatCurrency(order.total) }}</td>
         </tr>
       </tbody>
     </table>
@@ -153,6 +154,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { api } from '../../services/api'
 import HelperBox from '../../components/admin/HelperBox.vue'
+import { setFeatureFlagEnabled } from '../../services/featureFlags'
+import { refreshSiteModules } from '../../services/siteModules'
+import { formatCurrency } from '../../utils/currency'
 
 interface Flag {
   key: string
@@ -246,6 +250,8 @@ async function toggleFlag(flag: Flag, enabled: boolean) {
   try {
     await api.put(`/api/v1/admin/features/${flag.key}`, { enabled })
     flag.enabled = enabled
+    setFeatureFlagEnabled(flag.key, enabled)
+    await refreshSiteModules()
   } catch (e: unknown) {
     flagsError.value = e instanceof Error ? e.message : 'Failed to update flag'
   }

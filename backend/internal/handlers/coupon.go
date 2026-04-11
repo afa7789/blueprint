@@ -64,7 +64,7 @@ func (h *CouponHandler) AdminListCoupons(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(coupons)
+	return c.JSON(fiber.Map{"data": coupons})
 }
 
 // POST /admin/coupons

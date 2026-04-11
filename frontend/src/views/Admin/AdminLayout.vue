@@ -9,9 +9,9 @@
         <router-link to="/admin/users" @click="sidebarOpen = false"><i class="fas fa-users"></i> Users</router-link>
         <router-link v-if="flagWaitlist" to="/admin/waitlist" @click="sidebarOpen = false"><i class="fas fa-clipboard-list"></i> Waitlist</router-link>
         <router-link to="/admin/features" @click="sidebarOpen = false"><i class="fas fa-toggle-on"></i> Feature Flags</router-link>
-        <router-link to="/admin/banners" @click="sidebarOpen = false"><i class="fas fa-image"></i> Banners</router-link>
+        <router-link v-if="flagBanners" to="/admin/banners" @click="sidebarOpen = false"><i class="fas fa-image"></i> Banners</router-link>
         <router-link v-if="flagLinktree" to="/admin/linktree" @click="sidebarOpen = false"><i class="fas fa-link"></i> Linktree</router-link>
-        <router-link v-if="flagBrandKit" to="/admin/theme" @click="sidebarOpen = false"><i class="fas fa-palette"></i> Theme</router-link>
+        <router-link to="/admin/theme" @click="sidebarOpen = false"><i class="fas fa-palette"></i> Theme</router-link>
         <router-link v-if="flagEmailAuto" to="/admin/email-groups" @click="sidebarOpen = false"><i class="fas fa-envelope"></i> Email Groups</router-link>
         <router-link v-if="flagBlog" to="/admin/blog" @click="sidebarOpen = false"><i class="fas fa-pen-to-square"></i> Blog</router-link>
         <router-link v-if="storeEnabled" to="/admin/products" @click="sidebarOpen = false"><i class="fas fa-box-open"></i> Products</router-link>
@@ -34,27 +34,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlags'
 
 const sidebarOpen = ref(false)
-const flagWaitlist = ref(false)
-const flagLinktree = ref(false)
-const flagBrandKit = ref(false)
-const flagEmailAuto = ref(false)
-const flagBlog = ref(false)
-const storeEnabled = ref(false)
-const flagPayments = ref(false)
+const flagWaitlist = computed(() => isFeatureEnabled('waitlist_enabled'))
+const flagLinktree = computed(() => isFeatureEnabled('linktree_enabled'))
+const flagEmailAuto = computed(() => isFeatureEnabled('email_auto_enabled'))
+const flagBlog = computed(() => isFeatureEnabled('blog_enabled'))
+const storeEnabled = computed(() => isFeatureEnabled('store'))
+const flagPayments = computed(() => isFeatureEnabled('payments_stripe') || isFeatureEnabled('payments_pix'))
+const flagBanners = computed(() => isFeatureEnabled('banners_enabled'))
 
 onMounted(async () => {
   await fetchFeatureFlags()
-  flagWaitlist.value = isFeatureEnabled('waitlist_enabled')
-  flagLinktree.value = isFeatureEnabled('linktree_enabled')
-  flagBrandKit.value = isFeatureEnabled('brand_kit_enabled')
-  flagEmailAuto.value = isFeatureEnabled('email_auto_enabled')
-  flagBlog.value = isFeatureEnabled('blog_enabled')
-  storeEnabled.value = isFeatureEnabled('store')
-  flagPayments.value = isFeatureEnabled('payments_stripe') || isFeatureEnabled('payments_pix')
 })
 </script>
 

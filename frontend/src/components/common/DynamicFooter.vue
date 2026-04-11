@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlags'
+import { computed, ref, onMounted } from 'vue'
 import { api } from '../../services/api'
+import { loadSiteModules, siteModules } from '../../services/siteModules'
+import { useTheme } from '../../composables/useTheme'
 
-const linktreeEnabled = ref(false)
-const storeEnabled = ref(false)
-const blogEnabled = ref(false)
-const brandKitEnabled = ref(false)
+const { brandKit, loadTheme } = useTheme()
+
+const linktreeEnabled = computed(() => siteModules.linktreeEnabled)
+const storeVisible = computed(() => siteModules.storeEnabled && siteModules.hasStoreContent)
+const blogVisible = computed(() => siteModules.blogEnabled && siteModules.hasBlogContent)
+const brandKitEnabled = computed(() => siteModules.brandKitEnabled)
 
 interface LegalLink {
   slug: string
@@ -15,11 +18,7 @@ interface LegalLink {
 const legalPages = ref<LegalLink[]>([])
 
 onMounted(async () => {
-  await fetchFeatureFlags()
-  linktreeEnabled.value = isFeatureEnabled('linktree')
-  storeEnabled.value = isFeatureEnabled('store')
-  blogEnabled.value = isFeatureEnabled('blog')
-  brandKitEnabled.value = isFeatureEnabled('brand_kit')
+  await Promise.all([loadSiteModules(), loadTheme()])
 
   try {
     legalPages.value = await api.get<LegalLink[]>('/api/v1/legal')
@@ -33,11 +32,11 @@ onMounted(async () => {
   <footer class="footer">
     <div class="footer-content">
       <div class="footer-links">
-        <div v-if="storeEnabled" class="footer-section">
+        <div v-if="storeVisible" class="footer-section">
           <h3>Store</h3>
           <router-link to="/store">Browse Products</router-link>
         </div>
-        <div v-if="blogEnabled" class="footer-section">
+        <div v-if="blogVisible" class="footer-section">
           <h3>Blog</h3>
           <router-link to="/blog">Read Articles</router-link>
         </div>
@@ -49,6 +48,19 @@ onMounted(async () => {
           <h3>Resources</h3>
           <router-link v-if="brandKitEnabled" to="/brand-kit">Brand Kit</router-link>
           <router-link to="/legal/terms">Terms</router-link>
+        </div>
+        <div v-if="brandKitEnabled && brandKit" class="footer-section footer-section-brand">
+          <h3>Theme</h3>
+          <div v-if="brandKit.logo_url" class="brand-logo-wrap">
+            <img :src="brandKit.logo_url" alt="Brand logo" class="brand-logo" />
+          </div>
+          <div class="brand-swatches">
+            <span class="brand-swatch" :style="{ background: brandKit.accent_color }" title="Accent"></span>
+            <span class="brand-swatch" :style="{ background: brandKit.text_color }" title="Text"></span>
+            <span class="brand-swatch" :style="{ background: brandKit.bg_color }" title="Background"></span>
+          </div>
+          <p class="brand-meta" v-if="brandKit.font_family">Body: {{ brandKit.font_family }}</p>
+          <p class="brand-meta" v-if="brandKit.heading_font">Heading: {{ brandKit.heading_font }}</p>
         </div>
       </div>
       <div class="footer-bottom">
@@ -98,6 +110,39 @@ onMounted(async () => {
 
 .footer-section a:hover {
   color: var(--accent);
+}
+
+.footer-section-brand {
+  min-width: 220px;
+}
+
+.brand-logo-wrap {
+  margin-bottom: 8px;
+}
+
+.brand-logo {
+  max-width: 140px;
+  max-height: 44px;
+  object-fit: contain;
+}
+
+.brand-swatches {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.brand-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.brand-meta {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--text);
 }
 
 .footer-bottom {

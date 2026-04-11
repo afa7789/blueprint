@@ -36,7 +36,7 @@
         <tr v-for="order in filteredOrders" :key="order.id">
           <td class="order-id">{{ order.id.slice(0, 8) }}...</td>
           <td>{{ order.user_email || '-' }}</td>
-          <td>${{ (order.total / 100).toFixed(2) }}</td>
+          <td>{{ formatCurrency(order.total) }}</td>
           <td>
             <span class="status-badge" :class="`status-${order.status}`">{{ order.status }}</span>
           </td>
@@ -76,6 +76,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '../../services/api'
+import { formatCurrency } from '../../utils/currency'
 
 interface Order {
   id: string

@@ -3,6 +3,7 @@
     <HelperBox
       title="Banner System"
       description="Create banners with scheduling (start/end dates), profile targeting, and display duration. Banners show across the site based on active status and target audience."
+      featureFlag="banners_enabled"
     />
     <h2>Banners</h2>
     <div v-if="error" class="error">{{ error }}</div>

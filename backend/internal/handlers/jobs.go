@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -59,6 +60,18 @@ type JobsHandler struct {
 	mu         sync.Mutex
 }
 
+func normalizeSchedule(schedule string) (string, error) {
+	fields := strings.Fields(schedule)
+	switch len(fields) {
+	case 5:
+		return "0 " + strings.Join(fields, " "), nil
+	case 6:
+		return strings.Join(fields, " "), nil
+	default:
+		return "", fmt.Errorf("invalid cron schedule")
+	}
+}
+
 func NewJobsHandler(jobs domain.CronJobRepository, executions domain.JobExecutionRepository, registry *JobRegistry) *JobsHandler {
 	return &JobsHandler{
 		jobs:       jobs,
@@ -97,7 +110,12 @@ func (h *JobsHandler) scheduleJob(job domain.CronJob) error {
 	}
 
 	jobID := job.ID
-	entryID, err := h.scheduler.AddFunc(job.Schedule, func() {
+	schedule, err := normalizeSchedule(job.Schedule)
+	if err != nil {
+		return err
+	}
+
+	entryID, err := h.scheduler.AddFunc(schedule, func() {
 		h.executeJob(context.Background(), jobID, fn)
 	})
 	if err != nil {
@@ -180,6 +198,10 @@ func (h *JobsHandler) CreateJob(c *fiber.Ctx) error {
 	if req.Name == "" || req.Schedule == "" || req.Handler == "" {
 		return c.Status(400).JSON(fiber.Map{"error": "name, schedule, and handler are required"})
 	}
+	schedule, err := normalizeSchedule(req.Schedule)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
 	if _, ok := h.registry.Get(req.Handler); !ok {
 		return c.Status(400).JSON(fiber.Map{"error": fmt.Sprintf("handler %q is not registered", req.Handler)})
 	}
@@ -187,7 +209,7 @@ func (h *JobsHandler) CreateJob(c *fiber.Ctx) error {
 	job := &domain.CronJob{
 		ID:       uuid.NewString(),
 		Name:     req.Name,
-		Schedule: req.Schedule,
+		Schedule: schedule,
 		Handler:  req.Handler,
 		IsActive: req.IsActive,
 	}
@@ -235,7 +257,11 @@ func (h *JobsHandler) UpdateJob(c *fiber.Ctx) error {
 		job.Name = *req.Name
 	}
 	if req.Schedule != nil {
-		job.Schedule = *req.Schedule
+		schedule, err := normalizeSchedule(*req.Schedule)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		job.Schedule = schedule
 		reschedule = true
 	}
 	if req.IsActive != nil {

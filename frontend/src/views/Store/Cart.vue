@@ -13,14 +13,14 @@
           <div v-else class="item-image-placeholder"></div>
           <div class="item-details">
             <p class="item-name">{{ item.name }}</p>
-            <p class="item-unit-price">${{ (item.price / 100).toFixed(2) }} each</p>
+            <p class="item-unit-price">{{ formatCurrency(item.price) }} each</p>
           </div>
           <div class="item-qty">
             <button @click="cart.updateQuantity(item.productId, item.quantity - 1)" class="qty-btn">-</button>
             <span>{{ item.quantity }}</span>
             <button @click="cart.updateQuantity(item.productId, item.quantity + 1)" class="qty-btn">+</button>
           </div>
-          <p class="item-total">${{ (item.price * item.quantity / 100).toFixed(2) }}</p>
+          <p class="item-total">{{ formatCurrency(item.price * item.quantity) }}</p>
           <button @click="cart.removeItem(item.productId)" class="remove-btn">Remove</button>
         </div>
       </div>
@@ -47,15 +47,15 @@
         <div class="summary-lines">
           <div class="summary-line">
             <span>Subtotal</span>
-            <span>${{ (cart.subtotal / 100).toFixed(2) }}</span>
+            <span>{{ formatCurrency(cart.subtotal) }}</span>
           </div>
           <div v-if="cart.discount > 0" class="summary-line discount">
             <span>Discount</span>
-            <span>-${{ (cart.discount / 100).toFixed(2) }}</span>
+            <span>-{{ formatCurrency(cart.discount) }}</span>
           </div>
           <div class="summary-line total">
             <span>Total</span>
-            <span>${{ (cart.total / 100).toFixed(2) }}</span>
+            <span>{{ formatCurrency(cart.total) }}</span>
           </div>
         </div>
 
@@ -79,6 +79,7 @@ import { ref } from 'vue'
 import { useCartStore } from '../../stores/cart'
 import { useAuthStore } from '../../stores/auth'
 import { api } from '../../services/api'
+import { formatCurrency } from '../../utils/currency'
 
 const cart = useCartStore()
 const auth = useAuthStore()
@@ -90,11 +91,12 @@ const couponApplied = ref(false)
 async function applyCoupon() {
   couponError.value = ''
   try {
-    const data = await api.post<{ discount: number; code: string }>('/api/v1/coupons/validate', {
-      code: couponInput.value,
+    const data = await api.post<{ discount: number; coupon?: { code?: string } }>('/api/v1/coupons/validate', {
+      code: couponInput.value.trim(),
+      subtotal: cart.subtotal,
     })
     cart.discount = data.discount
-    cart.couponCode = data.code
+    cart.couponCode = data.coupon?.code || couponInput.value.trim()
     couponApplied.value = true
   } catch (e: unknown) {
     couponError.value = e instanceof Error ? e.message : 'Invalid coupon code'

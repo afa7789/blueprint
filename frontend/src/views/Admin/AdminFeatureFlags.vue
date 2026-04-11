@@ -30,6 +30,8 @@
 import { ref, onMounted } from 'vue'
 import { api } from '../../services/api'
 import HelperBox from '../../components/admin/HelperBox.vue'
+import { setFeatureFlagEnabled } from '../../services/featureFlags'
+import { refreshSiteModules } from '../../services/siteModules'
 
 interface Flag {
   key: string
@@ -56,6 +58,8 @@ async function toggle(flag: Flag, enabled: boolean) {
   try {
     await api.put(`/api/v1/admin/features/${flag.key}`, { enabled })
     flag.enabled = enabled
+    setFeatureFlagEnabled(flag.key, enabled)
+    await refreshSiteModules()
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to update flag'
   }

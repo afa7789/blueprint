@@ -19,10 +19,10 @@
           <span v-if="product.is_pre_sale" class="badge badge-presale">Pre-Sale</span>
         </div>
         <h1>{{ product.name }}</h1>
-        <p class="price">${{ (product.price / 100).toFixed(2) }}</p>
+        <p class="price">{{ formatCurrency(product.price) }}</p>
 
-        <div v-if="product.is_pre_sale && product.available_at" class="presale-info">
-          Available from: {{ formatDate(product.available_at) }}
+        <div v-if="product.is_pre_sale && product.pre_sale_available_at" class="presale-info">
+          Available from: {{ formatDate(product.pre_sale_available_at) }}
         </div>
 
         <div class="stock-status">
@@ -52,6 +52,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../../services/api'
 import { useCartStore } from '../../stores/cart'
+import { formatCurrency } from '../../utils/currency'
 
 interface Product {
   id: string
@@ -61,7 +62,7 @@ interface Product {
   stock: number
   images: string[]
   is_pre_sale: boolean
-  available_at: string | null
+  pre_sale_available_at: string | null
 }
 
 const route = useRoute()

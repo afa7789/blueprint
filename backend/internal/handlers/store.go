@@ -75,6 +75,7 @@ type createOrderItem struct {
 type createOrderRequest struct {
 	Items           []createOrderItem      `json:"items"`
 	ShippingAddress map[string]interface{} `json:"shipping_address"`
+	Shipping        map[string]interface{} `json:"shipping"`
 	PaymentMethod   string                 `json:"payment_method"`
 	CouponCode      string                 `json:"coupon_code"`
 }
@@ -91,6 +92,9 @@ func (h *StoreHandler) CreateOrder(c *fiber.Ctx) error {
 	}
 	if len(req.Items) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "items required")
+	}
+	if len(req.ShippingAddress) == 0 && len(req.Shipping) > 0 {
+		req.ShippingAddress = req.Shipping
 	}
 
 	var orderItems []domain.OrderItem
@@ -188,6 +192,30 @@ func (h *StoreHandler) ListMyOrders(c *fiber.Ctx) error {
 
 // ---- Admin ----
 
+func (h *StoreHandler) AdminListProducts(c *fiber.Ctx) error {
+	_, limit, offset := paginate(c)
+	var categoryID *string
+	if q := c.Query("category_id"); q != "" {
+		categoryID = &q
+	}
+
+	products, total, err := h.products.List(c.Context(), categoryID, false, offset, limit)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{"data": products, "total": total})
+}
+
+func (h *StoreHandler) AdminListCategories(c *fiber.Ctx) error {
+	categories, err := h.categories.List(c.Context())
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{"data": categories})
+}
+
 func (h *StoreHandler) AdminCreateProduct(c *fiber.Ctx) error {
 	p := &domain.Product{}
 	if err := c.BodyParser(p); err != nil {
@@ -257,7 +285,7 @@ func (h *StoreHandler) AdminListOrders(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(orders)
+	return c.JSON(fiber.Map{"data": orders})
 }
 
 func (h *StoreHandler) AdminUpdateOrderStatus(c *fiber.Ctx) error {

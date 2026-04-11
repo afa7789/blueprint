@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/afa/blueprint/backend/internal/domain"
@@ -15,6 +16,31 @@ type LogsHandler struct {
 	appLogs   domain.AppLogRepository
 	auditLogs domain.AuditLogRepository
 	logConfig domain.LogConfigRepository
+}
+
+type cleanupLogsRequest struct {
+	All bool `json:"all"`
+}
+
+func parseFlexibleTime(value string) *time.Time {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+
+	formats := []string{
+		time.RFC3339,
+		"2006-01-02T15:04",
+		"2006-01-02T15:04:05",
+	}
+
+	for _, format := range formats {
+		if parsed, err := time.Parse(format, value); err == nil {
+			return &parsed
+		}
+	}
+
+	return nil
 }
 
 func NewLogsHandler(
@@ -45,16 +71,10 @@ func (h *LogsHandler) ListLogs(c *fiber.Ctx) error {
 
 	var from, to *time.Time
 	if v := c.Query("from"); v != "" {
-		t, err := time.Parse(time.RFC3339, v)
-		if err == nil {
-			from = &t
-		}
+		from = parseFlexibleTime(v)
 	}
 	if v := c.Query("to"); v != "" {
-		t, err := time.Parse(time.RFC3339, v)
-		if err == nil {
-			to = &t
-		}
+		to = parseFlexibleTime(v)
 	}
 
 	logs, total, err := h.appLogs.List(c.Context(), level, source, search, from, to, offset, limit)
@@ -114,16 +134,10 @@ func (h *LogsHandler) ListAuditLogs(c *fiber.Ctx) error {
 
 	var from, to *time.Time
 	if v := c.Query("from"); v != "" {
-		t, err := time.Parse(time.RFC3339, v)
-		if err == nil {
-			from = &t
-		}
+		from = parseFlexibleTime(v)
 	}
 	if v := c.Query("to"); v != "" {
-		t, err := time.Parse(time.RFC3339, v)
-		if err == nil {
-			to = &t
-		}
+		to = parseFlexibleTime(v)
 	}
 
 	logs, total, err := h.auditLogs.List(c.Context(), userID, action, resource, from, to, offset, limit)
@@ -153,6 +167,21 @@ func (h *LogsHandler) UpdateLogConfig(c *fiber.Ctx) error {
 }
 
 func (h *LogsHandler) CleanupLogs(c *fiber.Ctx) error {
+	var req cleanupLogsRequest
+	if len(c.Body()) > 0 {
+		if err := c.BodyParser(&req); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	}
+
+	if req.All {
+		deleted, err := h.appLogs.Cleanup(c.Context(), 0)
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+		return c.JSON(fiber.Map{"deleted": deleted})
+	}
+
 	cfg, err := h.logConfig.Get(c.Context())
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())

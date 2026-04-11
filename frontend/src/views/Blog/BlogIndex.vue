@@ -47,7 +47,8 @@ interface Post {
 }
 
 interface PostsResponse {
-  posts: Post[]
+  data?: Post[]
+  posts?: Post[]
   total: number
   page: number
   limit: number
@@ -65,7 +66,7 @@ async function fetchPosts(p = 1) {
   error.value = ''
   try {
     const data = await api.get<PostsResponse>(`/api/v1/blog?page=${p}&limit=${limit}`)
-    posts.value = data.posts || []
+    posts.value = data.data || data.posts || []
     page.value = data.page || p
     totalPages.value = Math.ceil((data.total || 0) / limit)
   } catch (e: unknown) {

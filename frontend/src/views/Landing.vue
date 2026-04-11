@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import WaitlistForm from '../components/landing/WaitlistForm.vue'
-import { fetchFeatureFlags, isFeatureEnabled } from '../services/featureFlags'
+import { loadSiteModules, siteModules } from '../services/siteModules'
 
-const waitlistEnabled = ref(true)
-const storeEnabled = ref(true)
-const blogEnabled = ref(true)
+const waitlistEnabled = computed(() => siteModules.waitlistEnabled)
+const storeEnabled = computed(() => siteModules.storeEnabled)
+const blogEnabled = computed(() => siteModules.blogEnabled)
+const storeVisible = computed(() => siteModules.storeEnabled && siteModules.hasStoreContent)
+const blogVisible = computed(() => siteModules.blogEnabled && siteModules.hasBlogContent)
 
-onMounted(async () => {
-  await fetchFeatureFlags()
-  waitlistEnabled.value = isFeatureEnabled('waitlist')
-  storeEnabled.value = isFeatureEnabled('store')
-  blogEnabled.value = isFeatureEnabled('blog')
+onMounted(() => {
+  loadSiteModules()
 })
 
 interface FeatureItem {
@@ -308,6 +307,8 @@ const doneFeatures = categories.value.reduce((sum, c) => sum + c.features.filter
           <i class="fab fa-github"></i> GitHub
         </a>
         <router-link to="/register" class="btn btn-primary">Get Started</router-link>
+        <router-link v-if="storeVisible" to="/store" class="btn btn-outline">Loja</router-link>
+        <router-link v-if="blogVisible" to="/blog" class="btn btn-outline">Blog</router-link>
       </div>
     </section>
 
@@ -436,7 +437,8 @@ const doneFeatures = categories.value.reduce((sum, c) => sum + c.features.filter
       <p>Join the waitlist or dive straight into the code.</p>
       <div class="cta-buttons">
         <router-link to="/register" class="btn btn-primary btn-lg">Create Account</router-link>
-        <router-link v-if="storeEnabled" to="/store" class="btn btn-outline btn-lg">Browse Store</router-link>
+        <router-link v-if="storeVisible" to="/store" class="btn btn-outline btn-lg">Browse Store</router-link>
+        <router-link v-if="blogVisible" to="/blog" class="btn btn-outline btn-lg">Read Blog</router-link>
       </div>
     </section>
   </div>
