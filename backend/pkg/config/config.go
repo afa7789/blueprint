@@ -51,6 +51,7 @@ type Config struct {
 
 	// Security
 	MaxRequestBodyMB int // max request body in MB (default 10)
+	BcryptCost       int // bcrypt cost for password hashing (default 12)
 }
 
 func Load() *Config {
@@ -94,6 +95,7 @@ func Load() *Config {
 		RateLimitForgot:           getEnvInt("RATE_LIMIT_FORGOT", 3),
 		EmailVerificationRequired: getEnv("EMAIL_VERIFICATION_REQUIRED", "false") == "true",
 		MaxRequestBodyMB:          getEnvInt("MAX_REQUEST_BODY_MB", 10),
+		BcryptCost:                getEnvInt("BCRYPT_COST", 12),
 	}
 }
 

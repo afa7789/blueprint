@@ -22,8 +22,13 @@ func testConfig() *config.Config {
 		JWTExpiry:     15 * time.Minute,
 		RefreshExpiry: 7 * 24 * time.Hour,
 		Env:           "development",
+		BcryptCost:    4, // bcrypt.MinCost — keep tests fast
 	}
 }
+
+// testTimeout is passed to (*fiber.App).Test so bcrypt-heavy auth flows don't
+// hit the default 1s timeout under `-race`.
+const testTimeout = -1
 
 func setupAuthApp() (*fiber.App, *handlers.AuthHandler) {
 	app := fiber.New()
@@ -55,7 +60,7 @@ func TestRegister_Success(t *testing.T) {
 	}))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,12 +84,12 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 	payload := jsonBody(map[string]string{"email": "bob@example.com", "password": "secret123"})
 	req := httptest.NewRequest(http.MethodPost, "/register", payload)
 	req.Header.Set("Content-Type", "application/json")
-	app.Test(req) // first registration
+	app.Test(req, testTimeout) // first registration
 
 	payload2 := jsonBody(map[string]string{"email": "bob@example.com", "password": "other"})
 	req2 := httptest.NewRequest(http.MethodPost, "/register", payload2)
 	req2.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req2)
+	resp, err := app.Test(req2, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +109,7 @@ func TestRegister_MissingFields(t *testing.T) {
 	for _, c := range cases {
 		req := httptest.NewRequest(http.MethodPost, "/register", jsonBody(c))
 		req.Header.Set("Content-Type", "application/json")
-		resp, err := app.Test(req)
+		resp, err := app.Test(req, testTimeout)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -122,14 +127,14 @@ func TestLogin_Success(t *testing.T) {
 		"email": "carol@example.com", "password": "pass123",
 	}))
 	req.Header.Set("Content-Type", "application/json")
-	app.Test(req)
+	app.Test(req, testTimeout)
 
 	// Login
 	req2 := httptest.NewRequest(http.MethodPost, "/login", jsonBody(map[string]string{
 		"email": "carol@example.com", "password": "pass123",
 	}))
 	req2.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req2)
+	resp, err := app.Test(req2, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,13 +155,13 @@ func TestLogin_WrongPassword(t *testing.T) {
 		"email": "dave@example.com", "password": "correct",
 	}))
 	req.Header.Set("Content-Type", "application/json")
-	app.Test(req)
+	app.Test(req, testTimeout)
 
 	req2 := httptest.NewRequest(http.MethodPost, "/login", jsonBody(map[string]string{
 		"email": "dave@example.com", "password": "wrong",
 	}))
 	req2.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req2)
+	resp, err := app.Test(req2, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +177,7 @@ func TestLogin_NonexistentEmail(t *testing.T) {
 		"email": "ghost@example.com", "password": "pass",
 	}))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +195,7 @@ func TestMe_WithValidToken(t *testing.T) {
 		"email": "eve@example.com", "password": "pass123",
 	}))
 	req.Header.Set("Content-Type", "application/json")
-	regResp, err := app.Test(req)
+	regResp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +222,7 @@ func TestMe_WithoutToken(t *testing.T) {
 	app, _ := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodGet, "/me", nil)
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +239,7 @@ func TestRefresh_Success(t *testing.T) {
 		"email": "frank@example.com", "password": "pass123",
 	}))
 	req.Header.Set("Content-Type", "application/json")
-	regResp, err := app.Test(req)
+	regResp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,7 +275,7 @@ func TestLogout_ClearsCookies(t *testing.T) {
 	app, _ := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodPost, "/logout", nil)
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}

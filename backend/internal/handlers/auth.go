@@ -110,7 +110,11 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "email and password are required"})
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
+	cost := h.cfg.BcryptCost
+	if cost == 0 {
+		cost = 12
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), cost)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "internal error"})
 	}
