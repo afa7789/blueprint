@@ -24,11 +24,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: backend/go.sum
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
+          cache: true
 
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v6
