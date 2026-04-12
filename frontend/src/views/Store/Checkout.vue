@@ -69,7 +69,7 @@
           <template v-else-if="orderResult.method === 'pix_manual'">
             <p class="pix-title">PIX Payment</p>
             <p v-if="orderResult.beneficiary">Beneficiary: {{ orderResult.beneficiary }}</p>
-            <p v-if="orderResult.amount">Amount: {{ formatCurrency(Number(orderResult.amount)) }}</p>
+            <p v-if="orderResult.amount != null">Amount: {{ formatCurrency(Number(orderResult.amount)) }}</p>
             <div class="pix-qr-container">
               <img v-if="qrImageUrl" :src="qrImageUrl" alt="PIX QR Code" class="pix-qr-img" />
               <p v-else class="pix-qr">Generating QR code...</p>
@@ -227,12 +227,12 @@ async function placeOrder() {
       coupon_code: cart.couponCode || undefined,
     })
     const orderId = data.id
-    cart.clear()
 
     if (paymentMethod.value === 'stripe') {
       const stripeRes = await api.post<{ client_secret: string }>('/api/v1/payments/stripe', { order_id: orderId })
       // TODO: Use stripeRes.client_secret to complete payment via Stripe Elements/PaymentElement
       orderResult.value = { method: 'stripe', orderId, clientSecret: stripeRes.client_secret }
+      cart.clear()
       return
     }
 
@@ -246,9 +246,11 @@ async function placeOrder() {
           qrImageUrl.value = ''
         }
       }
+      cart.clear()
       return
     }
 
+    cart.clear()
     router.push({ path: '/store/orders', query: { success: '1' } })
   } catch (e: unknown) {
     orderError.value = e instanceof Error ? e.message : 'Failed to place order'
