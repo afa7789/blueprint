@@ -118,10 +118,10 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   await fetchFeatureFlags()
 
-  if (to.path.startsWith('/store') && !isFeatureEnabled('store')) return { path: '/' }
-  if (to.path.startsWith('/blog') && !isFeatureEnabled('blog')) return { path: '/' }
-  if (to.path === '/linktree' && !isFeatureEnabled('linktree')) return { path: '/' }
-  if (to.path === '/brand-kit' && !isFeatureEnabled('brand_kit')) return { path: '/' }
+  if (to.path.startsWith('/store') && !isFeatureEnabled('store_enabled')) return { path: '/' }
+  if (to.path.startsWith('/blog') && !isFeatureEnabled('blog_enabled')) return { path: '/' }
+  if (to.path === '/linktree' && !isFeatureEnabled('linktree_enabled')) return { path: '/' }
+  if (to.path === '/brand-kit' && !isFeatureEnabled('brand_kit_enabled')) return { path: '/' }
 
   const auth = useAuthStore()
   if (to.meta.requiresAuth) {

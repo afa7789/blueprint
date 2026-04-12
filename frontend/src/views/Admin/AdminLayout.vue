@@ -11,7 +11,7 @@
         <router-link to="/admin/features" @click="sidebarOpen = false"><i class="fas fa-toggle-on"></i> Feature Flags</router-link>
         <router-link v-if="flagBanners" to="/admin/banners" @click="sidebarOpen = false"><i class="fas fa-image"></i> Banners</router-link>
         <router-link v-if="flagLinktree" to="/admin/linktree" @click="sidebarOpen = false"><i class="fas fa-link"></i> Linktree</router-link>
-        <router-link to="/admin/theme" @click="sidebarOpen = false"><i class="fas fa-palette"></i> Theme</router-link>
+        <router-link v-if="flagTheme" to="/admin/theme" @click="sidebarOpen = false"><i class="fas fa-palette"></i> Theme</router-link>
         <router-link v-if="flagEmailAuto" to="/admin/email-groups" @click="sidebarOpen = false"><i class="fas fa-envelope"></i> Email Groups</router-link>
         <router-link v-if="flagBlog" to="/admin/blog" @click="sidebarOpen = false"><i class="fas fa-pen-to-square"></i> Blog</router-link>
         <router-link v-if="storeEnabled" to="/admin/products" @click="sidebarOpen = false"><i class="fas fa-box-open"></i> Products</router-link>
@@ -42,9 +42,10 @@ const flagWaitlist = computed(() => isFeatureEnabled('waitlist_enabled'))
 const flagLinktree = computed(() => isFeatureEnabled('linktree_enabled'))
 const flagEmailAuto = computed(() => isFeatureEnabled('email_auto_enabled'))
 const flagBlog = computed(() => isFeatureEnabled('blog_enabled'))
-const storeEnabled = computed(() => isFeatureEnabled('store'))
+const storeEnabled = computed(() => isFeatureEnabled('store_enabled'))
 const flagPayments = computed(() => isFeatureEnabled('payments_stripe') || isFeatureEnabled('payments_pix'))
 const flagBanners = computed(() => isFeatureEnabled('banners_enabled'))
+const flagTheme = computed(() => isFeatureEnabled('theme_enabled'))
 
 onMounted(async () => {
   await fetchFeatureFlags()

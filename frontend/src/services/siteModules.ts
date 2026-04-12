@@ -35,18 +35,22 @@ async function fetchTotal(path: string): Promise<number> {
 export async function loadSiteModules(force = false): Promise<typeof siteModules> {
   if (inFlight && !force) return inFlight
 
+  if (inFlight && force) {
+    await inFlight
+  }
+
   inFlight = (async () => {
     siteModules.loading = true
 
     try {
       await fetchFeatureFlags(force)
 
-      siteModules.waitlistEnabled = isFeatureEnabled('waitlist')
-      siteModules.storeEnabled = isFeatureEnabled('store')
-      siteModules.blogEnabled = isFeatureEnabled('blog')
-      siteModules.brandKitEnabled = isFeatureEnabled('brand_kit')
-      siteModules.linktreeEnabled = isFeatureEnabled('linktree')
-      siteModules.bannersEnabled = isFeatureEnabled('banners')
+      siteModules.waitlistEnabled = isFeatureEnabled('waitlist_enabled')
+      siteModules.storeEnabled = isFeatureEnabled('store_enabled')
+      siteModules.blogEnabled = isFeatureEnabled('blog_enabled')
+      siteModules.brandKitEnabled = isFeatureEnabled('brand_kit_enabled')
+      siteModules.linktreeEnabled = isFeatureEnabled('linktree_enabled')
+      siteModules.bannersEnabled = isFeatureEnabled('banners_enabled')
 
       const [storeTotal, blogTotal] = await Promise.all([
         siteModules.storeEnabled ? fetchTotal('/api/v1/products?page=1&limit=1') : Promise.resolve(0),
@@ -60,6 +64,7 @@ export async function loadSiteModules(force = false): Promise<typeof siteModules
       console.error('Failed to load site modules:', error)
       siteModules.hasStoreContent = false
       siteModules.hasBlogContent = false
+      siteModules.ready = true
     } finally {
       siteModules.loading = false
     }

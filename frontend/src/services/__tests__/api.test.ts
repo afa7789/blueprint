@@ -63,14 +63,6 @@ describe('api service', () => {
       })
     )
     await expect(api.get('/test')).rejects.toThrow(ApiError)
-    mockFetch.mockResolvedValue(
-      mockResponse({
-        ok: false,
-        status: 401,
-        statusText: 'Unauthorized',
-        json: { error: 'invalid token' },
-      })
-    )
     await expect(api.get('/test')).rejects.toMatchObject({ status: 401 })
   })
 

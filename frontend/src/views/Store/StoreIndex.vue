@@ -94,8 +94,8 @@ async function fetchProducts(p = 1) {
 
 async function fetchCategories() {
   try {
-    const data = await api.get<Category[]>('/api/v1/categories')
-    categories.value = data || []
+    const data = await api.get<{ data?: Category[] } | Category[]>('/api/v1/categories')
+    categories.value = (data as { data?: Category[] }).data || (Array.isArray(data) ? data : []) || []
   } catch {
     // categories optional
   }

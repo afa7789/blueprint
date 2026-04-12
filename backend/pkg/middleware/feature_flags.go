@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"slices"
 	"strings"
 
 	"github.com/afa/blueprint/backend/internal/domain"
@@ -11,25 +10,24 @@ import (
 
 func IsFeatureEnabled(ctx context.Context, repo domain.FeatureFlagRepository, key string) (bool, error) {
 	if repo == nil {
-		return true, nil
+		return true, nil // fail-open: avoid blocking features in edge/test scenarios
 	}
 
-	flags, err := repo.GetAll(ctx)
+	flag, err := repo.GetByKey(ctx, key)
 	if err != nil {
 		return false, err
 	}
-
-	candidates := []string{key}
-	if !strings.HasSuffix(key, "_enabled") {
-		candidates = append(candidates, key+"_enabled")
+	if flag != nil {
+		return flag.Enabled, nil
 	}
 
-	for _, candidate := range candidates {
-		idx := slices.IndexFunc(flags, func(flag domain.FeatureFlag) bool {
-			return flag.Key == candidate
-		})
-		if idx >= 0 {
-			return flags[idx].Enabled, nil
+	if !strings.HasSuffix(key, "_enabled") {
+		flag, err := repo.GetByKey(ctx, key+"_enabled")
+		if err != nil {
+			return false, err
+		}
+		if flag != nil {
+			return flag.Enabled, nil
 		}
 	}
 

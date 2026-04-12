@@ -18,7 +18,10 @@ interface LegalLink {
 const legalPages = ref<LegalLink[]>([])
 
 onMounted(async () => {
-  await Promise.all([loadSiteModules(), loadTheme()])
+  await loadSiteModules()
+  if (siteModules.brandKitEnabled) {
+    await loadTheme()
+  }
 
   try {
     legalPages.value = await api.get<LegalLink[]>('/api/v1/legal')

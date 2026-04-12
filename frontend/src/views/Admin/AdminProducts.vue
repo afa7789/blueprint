@@ -272,7 +272,7 @@ async function importCSV() {
     const parts = line.split(',')
     if (parts.length < 3) { errors.push(`Invalid line: ${line}`); continue }
     const [name, description, priceStr] = parts
-    const price = parsePrice(priceStr.trim())
+    const price = parsePrice(priceStr.trim()) / 100
     if (price <= 0) { errors.push(`Invalid price: ${line}`); continue }
     try {
       await api.post('/api/v1/admin/products', {

@@ -230,8 +230,9 @@ async function placeOrder() {
     cart.clear()
 
     if (paymentMethod.value === 'stripe') {
-      await api.post<{ client_secret: string }>('/api/v1/payments/stripe', { order_id: orderId })
-      orderResult.value = { method: 'stripe', orderId }
+      const stripeRes = await api.post<{ client_secret: string }>('/api/v1/payments/stripe', { order_id: orderId })
+      // TODO: Use stripeRes.client_secret to complete payment via Stripe Elements/PaymentElement
+      orderResult.value = { method: 'stripe', orderId, clientSecret: stripeRes.client_secret }
       return
     }
 

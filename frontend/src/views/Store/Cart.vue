@@ -90,13 +90,18 @@ const couponApplied = ref(false)
 
 async function applyCoupon() {
   couponError.value = ''
+  const code = couponInput.value.trim()
+  if (!code) {
+    couponError.value = 'Please enter a coupon code'
+    return
+  }
   try {
     const data = await api.post<{ discount: number; coupon?: { code?: string } }>('/api/v1/coupons/validate', {
-      code: couponInput.value.trim(),
+      code,
       subtotal: cart.subtotal,
     })
     cart.discount = data.discount
-    cart.couponCode = data.coupon?.code || couponInput.value.trim()
+    cart.couponCode = data.coupon?.code || code
     couponApplied.value = true
   } catch (e: unknown) {
     couponError.value = e instanceof Error ? e.message : 'Invalid coupon code'

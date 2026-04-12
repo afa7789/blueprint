@@ -84,7 +84,9 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 	payload := jsonBody(map[string]string{"email": "bob@example.com", "password": "secret123"})
 	req := httptest.NewRequest(http.MethodPost, "/register", payload)
 	req.Header.Set("Content-Type", "application/json")
-	app.Test(req, testTimeout) // first registration
+	if _, err := app.Test(req, testTimeout); err != nil {
+		t.Fatal(err)
+	}
 
 	payload2 := jsonBody(map[string]string{"email": "bob@example.com", "password": "other"})
 	req2 := httptest.NewRequest(http.MethodPost, "/register", payload2)

@@ -23,8 +23,12 @@
         </tr>
         <tr v-for="coupon in coupons" :key="coupon.id">
           <td class="coupon-code">{{ coupon.code }}</td>
-          <td>{{ coupon.discount_type === 'percentage' ? 'percentage' : 'fixed' }}</td>
-          <td>{{ coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : formatCurrency(coupon.discount_value) }}</td>
+          <td>
+            <span v-if="coupon.discount_type === 'percentage'">percentage</span>
+            <span v-else-if="coupon.discount_type === 'fixed'">fixed</span>
+            <span v-else>unknown</span>
+          </td>
+          <td>{{ coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : (coupon.discount_type === 'fixed' ? formatCurrency(coupon.discount_value) : '-') }}</td>
           <td>{{ coupon.uses_count }} / {{ coupon.max_uses ?? '∞' }}</td>
           <td>{{ coupon.valid_until ? formatDate(coupon.valid_until) : 'Never' }}</td>
         </tr>
