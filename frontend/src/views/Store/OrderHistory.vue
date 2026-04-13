@@ -21,7 +21,7 @@
         <div class="order-body">
           <div class="order-total">
             <span>Total:</span>
-            <strong>${{ (order.total / 100).toFixed(2) }}</strong>
+            <strong>{{ formatCurrency(order.total) }}</strong>
           </div>
           <div v-if="order.tracking_code" class="tracking">
             Tracking: <code>{{ order.tracking_code }}</code>
@@ -36,6 +36,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../../services/api'
+import { formatCurrency } from '../../utils/currency'
 
 interface Order {
   id: string

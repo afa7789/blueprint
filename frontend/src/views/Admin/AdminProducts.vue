@@ -36,7 +36,7 @@
         <tr v-for="product in filteredProducts" :key="product.id">
           <td>{{ product.name }}</td>
           <td>{{ categoryName(product.category_id) }}</td>
-          <td>R$ {{ product.price.toFixed(2).replace('.', ',') }}</td>
+          <td>{{ formatCurrency(product.price) }}</td>
           <td>{{ product.stock }}</td>
           <td><span class="status-badge" :class="product.is_active ? 'status-active' : 'status-inactive'">{{ product.is_active ? 'Active' : 'Inactive' }}</span></td>
           <td class="actions">
@@ -125,9 +125,10 @@ Camiseta Blueprint,Tamanho único,3500</pre>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { api } from '../../services/api'
 import HelperBox from '../../components/admin/HelperBox.vue'
+import { formatCurrency } from '../../utils/currency'
 
 interface Category {
   id: string
@@ -141,8 +142,7 @@ interface Product {
   price: number
   stock: number
   category_id: string | null
-  image_url: string | null
-  images: string | null
+  images: string[] | null
   is_active: boolean
   emoji?: string
 }
@@ -216,7 +216,7 @@ function openEdit(product: Product) {
     priceDisplay: product.price.toFixed(2).replace('.', ','),
     stock: product.stock,
     category_id: product.category_id || '',
-    image_url: product.image_url || '',
+    image_url: product.images?.[0] || '',
     active: product.is_active,
   }
   formError.value = ''
@@ -244,7 +244,7 @@ async function submitForm() {
       stock: form.value.stock,
       is_active: form.value.active,
       category_id: form.value.category_id || null,
-      images: '[]',
+      images: form.value.image_url ? [form.value.image_url] : [],
     }
     if (editingProduct.value) {
       await api.put(`/api/v1/admin/products/${editingProduct.value.id}`, payload)
@@ -272,16 +272,16 @@ async function importCSV() {
     const parts = line.split(',')
     if (parts.length < 3) { errors.push(`Invalid line: ${line}`); continue }
     const [name, description, priceStr] = parts
-    const priceCents = parseInt(priceStr.trim())
-    if (isNaN(priceCents)) { errors.push(`Invalid price: ${line}`); continue }
+    const price = parsePrice(priceStr.trim()) / 100
+    if (price <= 0) { errors.push(`Invalid price: ${line}`); continue }
     try {
       await api.post('/api/v1/admin/products', {
         name: name.trim(),
         description: description.trim() || null,
-        price: priceCents / 100,
+        price,
         stock: 0,
         is_active: true,
-        images: '[]',
+        images: [],
       })
       imported++
     } catch { errors.push(`Failed: ${name}`) }

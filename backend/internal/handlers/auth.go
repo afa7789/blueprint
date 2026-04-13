@@ -27,13 +27,13 @@ func NewAuthHandler(users domain.UserRepository, flags domain.FeatureFlagReposit
 }
 
 type userResponse struct {
-	ID            string     `json:"id"`
-	Email         string     `json:"email"`
-	Name          *string    `json:"name"`
-	Role          string     `json:"role"`
-	EmailVerified bool       `json:"email_verified"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	ID            string    `json:"id"`
+	Email         string    `json:"email"`
+	Name          *string   `json:"name"`
+	Role          string    `json:"role"`
+	EmailVerified bool      `json:"email_verified"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 func toUserResponse(u *domain.User) userResponse {
@@ -93,7 +93,7 @@ func (h *AuthHandler) setTokenCookies(c *fiber.Ctx, accessToken, refreshToken st
 		Secure:   h.cfg.Env != "development",
 		SameSite: "Lax",
 		MaxAge:   int(h.cfg.RefreshExpiry.Seconds()),
-		Path:     "/",  // available on all paths so frontend can auto-refresh
+		Path:     "/", // available on all paths so frontend can auto-refresh
 	})
 }
 
@@ -110,7 +110,14 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "email and password are required"})
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
+	cost := h.cfg.BcryptCost
+	if cost == 0 {
+		cost = 12
+	}
+	if cost < bcrypt.MinCost || cost > bcrypt.MaxCost {
+		cost = 12
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), cost)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "internal error"})
 	}
@@ -228,16 +235,16 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
-		Name:    "access_token",
-		Value:   "",
-		MaxAge:  -1,
-		Path:    "/",
+		Name:   "access_token",
+		Value:  "",
+		MaxAge: -1,
+		Path:   "/",
 	})
 	c.Cookie(&fiber.Cookie{
-		Name:    "refresh_token",
-		Value:   "",
-		MaxAge:  -1,
-		Path:    "/",
+		Name:   "refresh_token",
+		Value:  "",
+		MaxAge: -1,
+		Path:   "/",
 	})
 	return c.JSON(fiber.Map{"message": "logged out"})
 }

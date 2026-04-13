@@ -34,7 +34,7 @@
         <tbody>
           <template v-for="entry in entries" :key="entry.id">
             <tr class="audit-row" @click="toggleExpand(entry.id)" :class="{ expanded: expandedId === entry.id }">
-              <td>{{ formatDate(entry.timestamp) }}</td>
+              <td>{{ formatDate(entry.created_at) }}</td>
               <td class="mono">{{ entry.user_id }}</td>
               <td><span class="action-badge">{{ entry.action }}</span></td>
               <td>{{ entry.resource }}</td>
@@ -67,7 +67,7 @@ import HelperBox from '../../components/admin/HelperBox.vue'
 
 interface AuditEntry {
   id: string
-  timestamp: string
+  created_at: string
   user_id: string
   action: string
   resource: string
@@ -95,8 +95,8 @@ async function loadAudit() {
     if (filters.value.user_id) params.set('user_id', filters.value.user_id)
     if (filters.value.action) params.set('action', filters.value.action)
     if (filters.value.resource) params.set('resource', filters.value.resource)
-    if (filters.value.from) params.set('from', filters.value.from)
-    if (filters.value.to) params.set('to', filters.value.to)
+    if (filters.value.from) params.set('from', new Date(filters.value.from).toISOString())
+    if (filters.value.to) params.set('to', new Date(filters.value.to).toISOString())
     const data = await api.get<{ data: AuditEntry[] }>(`/api/v1/admin/audit?${params}`)
     entries.value = data.data
   } catch (e: unknown) {

@@ -20,7 +20,7 @@
           <td class="mono">#{{ order.id }}</td>
           <td>{{ formatDate(order.created_at) }}</td>
           <td><span class="badge" :class="`badge-${order.status}`">{{ order.status }}</span></td>
-          <td>${{ order.total.toFixed(2) }}</td>
+          <td>{{ formatCurrency(order.total) }}</td>
           <td>
             <a
               v-if="isUrl(order.tracking_code)"
@@ -42,6 +42,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api } from '../../services/api'
+import { formatCurrency } from '../../utils/currency'
 
 interface Order {
   id: number

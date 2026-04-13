@@ -22,10 +22,15 @@ func testConfig() *config.Config {
 		JWTExpiry:     15 * time.Minute,
 		RefreshExpiry: 7 * 24 * time.Hour,
 		Env:           "development",
+		BcryptCost:    4, // bcrypt.MinCost — keep tests fast
 	}
 }
 
-func setupAuthApp() (*fiber.App, *handlers.AuthHandler) {
+// testTimeout is passed to (*fiber.App).Test so bcrypt-heavy auth flows don't
+// hit the default 1s timeout under `-race`.
+const testTimeout = -1
+
+func setupAuthApp() *fiber.App {
 	app := fiber.New()
 	userRepo := testutil.NewMockUserRepo()
 	flagRepo := testutil.NewMockFeatureFlagRepo()
@@ -38,7 +43,7 @@ func setupAuthApp() (*fiber.App, *handlers.AuthHandler) {
 	app.Post("/refresh", h.Refresh)
 	app.Get("/me", middleware.RequireAuth(cfg), h.Me)
 
-	return app, h
+	return app
 }
 
 func jsonBody(v any) *bytes.Buffer {
@@ -47,7 +52,7 @@ func jsonBody(v any) *bytes.Buffer {
 }
 
 func TestRegister_Success(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodPost, "/register", jsonBody(map[string]string{
 		"email":    "alice@example.com",
@@ -55,16 +60,19 @@ func TestRegister_Success(t *testing.T) {
 	}))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 201 {
 		t.Fatalf("expected 201, got %d", resp.StatusCode)
 	}
 
 	var body map[string]any
-	json.NewDecoder(resp.Body).Decode(&body)
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
 	if body["access_token"] == nil {
 		t.Fatal("expected access_token in response")
 	}
@@ -74,27 +82,32 @@ func TestRegister_Success(t *testing.T) {
 }
 
 func TestRegister_DuplicateEmail(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	payload := jsonBody(map[string]string{"email": "bob@example.com", "password": "secret123"})
 	req := httptest.NewRequest(http.MethodPost, "/register", payload)
 	req.Header.Set("Content-Type", "application/json")
-	app.Test(req) // first registration
+	resp1, err := app.Test(req, testTimeout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp1.Body.Close() }()
 
 	payload2 := jsonBody(map[string]string{"email": "bob@example.com", "password": "other"})
 	req2 := httptest.NewRequest(http.MethodPost, "/register", payload2)
 	req2.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req2)
+	resp, err := app.Test(req2, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 409 {
 		t.Fatalf("expected 409, got %d", resp.StatusCode)
 	}
 }
 
 func TestRegister_MissingFields(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	cases := []map[string]string{
 		{"email": "", "password": "secret"},
@@ -104,10 +117,11 @@ func TestRegister_MissingFields(t *testing.T) {
 	for _, c := range cases {
 		req := httptest.NewRequest(http.MethodPost, "/register", jsonBody(c))
 		req.Header.Set("Content-Type", "application/json")
-		resp, err := app.Test(req)
+		resp, err := app.Test(req, testTimeout)
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != 400 {
 			t.Fatalf("expected 400 for %v, got %d", c, resp.StatusCode)
 		}
@@ -115,74 +129,87 @@ func TestRegister_MissingFields(t *testing.T) {
 }
 
 func TestLogin_Success(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	// Register first
 	req := httptest.NewRequest(http.MethodPost, "/register", jsonBody(map[string]string{
 		"email": "carol@example.com", "password": "pass123",
 	}))
 	req.Header.Set("Content-Type", "application/json")
-	app.Test(req)
+	regResp, err := app.Test(req, testTimeout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = regResp.Body.Close() }()
 
 	// Login
 	req2 := httptest.NewRequest(http.MethodPost, "/login", jsonBody(map[string]string{
 		"email": "carol@example.com", "password": "pass123",
 	}))
 	req2.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req2)
+	resp, err := app.Test(req2, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
 	var body map[string]any
-	json.NewDecoder(resp.Body).Decode(&body)
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
 	if body["access_token"] == nil {
 		t.Fatal("expected access_token in login response")
 	}
 }
 
 func TestLogin_WrongPassword(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodPost, "/register", jsonBody(map[string]string{
 		"email": "dave@example.com", "password": "correct",
 	}))
 	req.Header.Set("Content-Type", "application/json")
-	app.Test(req)
+	regResp, err := app.Test(req, testTimeout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = regResp.Body.Close() }()
 
 	req2 := httptest.NewRequest(http.MethodPost, "/login", jsonBody(map[string]string{
 		"email": "dave@example.com", "password": "wrong",
 	}))
 	req2.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req2)
+	resp, err := app.Test(req2, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 401 {
 		t.Fatalf("expected 401, got %d", resp.StatusCode)
 	}
 }
 
 func TestLogin_NonexistentEmail(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodPost, "/login", jsonBody(map[string]string{
 		"email": "ghost@example.com", "password": "pass",
 	}))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 401 {
 		t.Fatalf("expected 401, got %d", resp.StatusCode)
 	}
 }
 
 func TestMe_WithValidToken(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 	cfg := testConfig()
 
 	// Register to get a real user
@@ -190,12 +217,15 @@ func TestMe_WithValidToken(t *testing.T) {
 		"email": "eve@example.com", "password": "pass123",
 	}))
 	req.Header.Set("Content-Type", "application/json")
-	regResp, err := app.Test(req)
+	regResp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = regResp.Body.Close() }()
 	var regBody map[string]any
-	json.NewDecoder(regResp.Body).Decode(&regBody)
+	if err := json.NewDecoder(regResp.Body).Decode(&regBody); err != nil {
+		t.Fatal(err)
+	}
 	token, ok := regBody["access_token"].(string)
 	if !ok || token == "" {
 		t.Fatal("no access_token in register response")
@@ -204,40 +234,43 @@ func TestMe_WithValidToken(t *testing.T) {
 
 	meReq := httptest.NewRequest(http.MethodGet, "/me", nil)
 	meReq.Header.Set("Authorization", "Bearer "+token)
-	resp, err := app.Test(meReq)
+	resp, err := app.Test(meReq, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
 }
 
 func TestMe_WithoutToken(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodGet, "/me", nil)
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 401 {
 		t.Fatalf("expected 401, got %d", resp.StatusCode)
 	}
 }
 
 func TestRefresh_Success(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	// Register to get cookies
 	req := httptest.NewRequest(http.MethodPost, "/register", jsonBody(map[string]string{
 		"email": "frank@example.com", "password": "pass123",
 	}))
 	req.Header.Set("Content-Type", "application/json")
-	regResp, err := app.Test(req)
+	regResp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = regResp.Body.Close() }()
 
 	// Extract refresh_token cookie
 	var refreshCookie string
@@ -252,28 +285,32 @@ func TestRefresh_Success(t *testing.T) {
 
 	refreshReq := httptest.NewRequest(http.MethodPost, "/refresh", nil)
 	refreshReq.AddCookie(&http.Cookie{Name: "refresh_token", Value: refreshCookie})
-	resp, err := app.Test(refreshReq)
+	resp, err := app.Test(refreshReq, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
 	var body map[string]any
-	json.NewDecoder(resp.Body).Decode(&body)
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
 	if body["access_token"] == nil {
 		t.Fatal("expected access_token in refresh response")
 	}
 }
 
 func TestLogout_ClearsCookies(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodPost, "/logout", nil)
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}

@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/afa/blueprint/backend/internal/domain"
 	"github.com/gofiber/fiber/v2"
@@ -62,7 +64,9 @@ func AuditLog(repo domain.AuditLogRepository) fiber.Handler {
 
 		// Non-blocking
 		go func() {
-			_ = repo.Create(c.Context(), entry)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = repo.Create(ctx, entry)
 		}()
 
 		return err

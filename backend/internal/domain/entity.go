@@ -6,11 +6,11 @@ import (
 )
 
 type User struct {
-	ID              string     `json:"id"`
-	Email           string     `json:"email"`
-	PasswordHash    string     `json:"password_hash"`
-	Name            *string    `json:"name"`
-	Role            string     `json:"role"`
+	ID               string     `json:"id"`
+	Email            string     `json:"email"`
+	PasswordHash     string     `json:"password_hash"`
+	Name             *string    `json:"name"`
+	Role             string     `json:"role"`
 	EmailVerified    bool       `json:"email_verified"`
 	EmailVerifiedAt  *time.Time `json:"email_verified_at,omitempty"`
 	StripeCustomerID *string    `json:"stripe_customer_id,omitempty"`
@@ -64,18 +64,18 @@ type Category struct {
 }
 
 type Product struct {
-	ID                  string          `json:"id"`
-	Name                string          `json:"name"`
-	Description         *string         `json:"description"`
-	Price               float64         `json:"price"`
-	Stock               int             `json:"stock"`
-	IsPreSale           bool            `json:"is_pre_sale"`
-	PreSaleAvailableAt  *time.Time      `json:"pre_sale_available_at"`
-	Images              json.RawMessage `json:"images"`
-	CategoryID          *string         `json:"category_id"`
-	IsActive            bool            `json:"is_active"`
-	CreatedAt           time.Time       `json:"created_at"`
-	UpdatedAt           time.Time       `json:"updated_at"`
+	ID                 string          `json:"id"`
+	Name               string          `json:"name"`
+	Description        *string         `json:"description"`
+	Price              float64         `json:"price"`
+	Stock              int             `json:"stock"`
+	IsPreSale          bool            `json:"is_pre_sale"`
+	PreSaleAvailableAt *time.Time      `json:"pre_sale_available_at"`
+	Images             json.RawMessage `json:"images"`
+	CategoryID         *string         `json:"category_id"`
+	IsActive           bool            `json:"is_active"`
+	CreatedAt          time.Time       `json:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at"`
 }
 
 type Order struct {
@@ -148,26 +148,26 @@ type Banner struct {
 }
 
 type LinktreeItem struct {
-	ID         string `json:"id"`
-	Title      string `json:"title"`
-	URL        string `json:"url"`
+	ID         string  `json:"id"`
+	Title      string  `json:"title"`
+	URL        string  `json:"url"`
 	Icon       *string `json:"icon"`
-	OrderIndex int    `json:"order_index"`
-	IsActive   bool   `json:"is_active"`
+	OrderIndex int     `json:"order_index"`
+	IsActive   bool    `json:"is_active"`
 }
 
 type BrandKit struct {
-	ID               string    `json:"id"`
-	PrimaryColor     string    `json:"primary_color"`
-	SecondaryColor   string    `json:"secondary_color"`
-	AccentColor      string    `json:"accent_color"`
-	AccentBg         string    `json:"accent_bg"`
-	AccentBorder     string    `json:"accent_border"`
-	TextColor        string    `json:"text_color"`
-	TextHeadingColor string    `json:"text_heading_color"`
-	BgColor          string    `json:"bg_color"`
-	BorderColor      string    `json:"border_color"`
-	CodeBgColor      string    `json:"code_bg_color"`
+	ID               string `json:"id"`
+	PrimaryColor     string `json:"primary_color"`
+	SecondaryColor   string `json:"secondary_color"`
+	AccentColor      string `json:"accent_color"`
+	AccentBg         string `json:"accent_bg"`
+	AccentBorder     string `json:"accent_border"`
+	TextColor        string `json:"text_color"`
+	TextHeadingColor string `json:"text_heading_color"`
+	BgColor          string `json:"bg_color"`
+	BorderColor      string `json:"border_color"`
+	CodeBgColor      string `json:"code_bg_color"`
 
 	// Dark mode
 	DarkAccentColor      string `json:"dark_accent_color"`

@@ -4,20 +4,22 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Config struct {
-	Port    string
-	Env     string
-	DBURL   string
-	DBMURL  string // migration URL (may differ from pool DSN)
+	Port     string
+	Env      string
+	DBURL    string
+	DBMURL   string // migration URL (may differ from pool DSN)
 	RedisURL string
 
 	JWTSecret     string
 	JWTExpiry     time.Duration
 	RefreshExpiry time.Duration
 
-	StripeKey       string
+	StripeKey           string
 	StripeWebhookSecret string
 
 	StorageType string // local, s3
@@ -51,14 +53,15 @@ type Config struct {
 
 	// Security
 	MaxRequestBodyMB int // max request body in MB (default 10)
+	BcryptCost       int // bcrypt cost for password hashing (default 12)
 }
 
 func Load() *Config {
 	return &Config{
-		Port:    getEnv("PORT", "8080"),
-		Env:     getEnv("ENV", "development"),
-		DBURL:   getEnv("DATABASE_URL", "postgres://blueprint:blueprint@localhost:5432/blueprint?sslmode=disable"),
-		DBMURL:  getEnv("DATABASE_MIGRATION_URL", getEnv("DATABASE_URL", "postgres://blueprint:blueprint@localhost:5432/blueprint?sslmode=disable")),
+		Port:     getEnv("PORT", "8080"),
+		Env:      getEnv("ENV", "development"),
+		DBURL:    getEnv("DATABASE_URL", "postgres://blueprint:blueprint@localhost:5432/blueprint?sslmode=disable"),
+		DBMURL:   getEnv("DATABASE_MIGRATION_URL", getEnv("DATABASE_URL", "postgres://blueprint:blueprint@localhost:5432/blueprint?sslmode=disable")),
 		RedisURL: getEnv("REDIS_URL", "redis://localhost:6379"),
 
 		JWTSecret:     getEnv("JWT_SECRET", "change-me-in-production"),
@@ -94,6 +97,7 @@ func Load() *Config {
 		RateLimitForgot:           getEnvInt("RATE_LIMIT_FORGOT", 3),
 		EmailVerificationRequired: getEnv("EMAIL_VERIFICATION_REQUIRED", "false") == "true",
 		MaxRequestBodyMB:          getEnvInt("MAX_REQUEST_BODY_MB", 10),
+		BcryptCost:                getBcryptCost(),
 	}
 }
 
@@ -111,6 +115,14 @@ func getEnvInt(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+func getBcryptCost() int {
+	cost := getEnvInt("BCRYPT_COST", 12)
+	if cost < bcrypt.MinCost || cost > bcrypt.MaxCost {
+		cost = 12
+	}
+	return cost
 }
 
 func getDuration(key string, defaultValue time.Duration) time.Duration {

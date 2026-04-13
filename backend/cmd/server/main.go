@@ -2,6 +2,8 @@ package main
 
 import (
 	c "context"
+	"encoding/json"
+	"errors"
 	"log"
 	"time"
 
@@ -39,7 +41,9 @@ func main() {
 
 	// Migrations
 	if err := database.RunMigrations(migrations.FS, cfg.DBMURL); err != nil {
-		log.Fatalf("Migrations failed: %v", err)
+		pool.Close()
+		log.Printf("Migrations failed: %v", err)
+		return
 	}
 	log.Println("Migrations applied")
 
@@ -55,8 +59,9 @@ func main() {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
-			if e, ok := err.(*fiber.Error); ok {
-				code = e.Code
+			var fe *fiber.Error
+			if errors.As(err, &fe) {
+				code = fe.Code
 			}
 			return c.Status(code).JSON(fiber.Map{"error": err.Error()})
 		},
@@ -131,13 +136,13 @@ func main() {
 		for {
 			var count int64
 			ctx := c.Background()
-			pool.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
+			_ = pool.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
 			metrics.UsersTotal.Set(float64(count))
-			pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE is_active = true").Scan(&count)
+			_ = pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE is_active = true").Scan(&count)
 			metrics.ProductsTotal.Set(float64(count))
-			pool.QueryRow(ctx, "SELECT COUNT(*) FROM blog_posts").Scan(&count)
+			_ = pool.QueryRow(ctx, "SELECT COUNT(*) FROM blog_posts").Scan(&count)
 			metrics.BlogPostsTotal.Set(float64(count))
-			pool.QueryRow(ctx, "SELECT COUNT(*) FROM waitlist").Scan(&count)
+			_ = pool.QueryRow(ctx, "SELECT COUNT(*) FROM waitlist").Scan(&count)
 			metrics.WaitlistTotal.Set(float64(count))
 			time.Sleep(60 * time.Second)
 		}
@@ -166,9 +171,32 @@ func main() {
 	// Structured logger
 	appLogger := applog.New(appLogRepo, "server")
 	appLogger.Info(c.Background(), "Server starting", map[string]interface{}{"port": cfg.Port})
+	app.Use(middleware.AppLog(appLogRepo))
 
 	// Job registry + handler
 	jobRegistry := handlers.NewJobRegistry()
+	jobRegistry.Register("system.noop", func(_ c.Context) (json.RawMessage, error) {
+		payload, _ := json.Marshal(map[string]interface{}{
+			"ok":          true,
+			"executed_at": time.Now().UTC(),
+		})
+		return payload, nil
+	})
+	jobRegistry.Register("logs.cleanup", func(ctx c.Context) (json.RawMessage, error) {
+		logCfg, err := logConfigRepo.Get(ctx)
+		if err != nil {
+			return nil, err
+		}
+		deleted, err := appLogRepo.Cleanup(ctx, logCfg.RetentionDays)
+		if err != nil {
+			return nil, err
+		}
+		payload, _ := json.Marshal(map[string]interface{}{
+			"deleted":        deleted,
+			"retention_days": logCfg.RetentionDays,
+		})
+		return payload, nil
+	})
 	jobsHandler := handlers.NewJobsHandler(cronJobRepo, jobExecRepo, jobRegistry)
 	if err := jobsHandler.StartScheduler(c.Background()); err != nil {
 		log.Printf("Failed to start job scheduler: %v", err)
@@ -210,6 +238,7 @@ func main() {
 
 	api.Get("/features", flagHandler.GetAll)
 	admin := api.Group("/admin", middleware.RequireAuth(cfg), middleware.RequireRole("admin"))
+	admin.Use(middleware.AuditLog(auditLogRepo))
 	admin.Get("/features", flagHandler.GetAll)
 	admin.Put("/features/:key", flagHandler.Toggle)
 
@@ -218,21 +247,21 @@ func main() {
 	api.Get("/legal/:slug", legalHandler.GetBySlug)
 
 	// Public content routes
-	api.Get("/linktree", func(fc *fiber.Ctx) error {
+	api.Get("/linktree", middleware.RequireFeature(flagRepo, "linktree_enabled"), func(fc *fiber.Ctx) error {
 		items, err := linktreeRepo.List(fc.Context(), true)
 		if err != nil {
 			return fc.Status(500).JSON(fiber.Map{"error": "failed to fetch linktree"})
 		}
 		return fc.JSON(items)
 	})
-	api.Get("/banners", func(fc *fiber.Ctx) error {
+	api.Get("/banners", middleware.RequireFeature(flagRepo, "banners_enabled"), func(fc *fiber.Ctx) error {
 		items, err := bannerRepo.List(fc.Context(), true)
 		if err != nil {
 			return fc.Status(500).JSON(fiber.Map{"error": "failed to fetch banners"})
 		}
 		return fc.JSON(items)
 	})
-	api.Get("/brand-kit", func(fc *fiber.Ctx) error {
+	api.Get("/brand-kit", middleware.RequireFeature(flagRepo, "brand_kit_enabled"), func(fc *fiber.Ctx) error {
 		bk, err := brandKitRepo.Get(fc.Context())
 		if err != nil {
 			return fc.Status(500).JSON(fiber.Map{"error": "failed to fetch brand kit"})
@@ -240,7 +269,7 @@ func main() {
 		return fc.JSON(bk)
 	})
 
-	api.Post("/waitlist", waitlistHandler.AddToWaitlist)
+	api.Post("/waitlist", middleware.RequireFeature(flagRepo, "waitlist_enabled"), waitlistHandler.AddToWaitlist)
 	api.Get("/waitlist", middleware.RequireAuth(cfg), middleware.RequireRole("admin"), waitlistHandler.GetWaitlist)
 
 	// Admin routes (admin group already created above)
@@ -275,27 +304,29 @@ func main() {
 	admin.Delete("/user-groups/:id", adminHandler.DeleteUserGroup)
 
 	// Store — public routes
-	api.Get("/products", storeHandler.ListProducts)
-	api.Get("/products/:id", storeHandler.GetProduct)
-	api.Get("/categories", storeHandler.ListCategories)
+	api.Get("/products", middleware.RequireFeature(flagRepo, "store_enabled"), storeHandler.ListProducts)
+	api.Get("/products/:id", middleware.RequireFeature(flagRepo, "store_enabled"), storeHandler.GetProduct)
+	api.Get("/categories", middleware.RequireFeature(flagRepo, "store_enabled"), storeHandler.ListCategories)
 
 	// Store — auth-required routes
-	api.Post("/orders", middleware.RequireAuth(cfg), storeHandler.CreateOrder)
+	api.Post("/orders", middleware.RequireFeature(flagRepo, "store_enabled"), middleware.RequireAuth(cfg), storeHandler.CreateOrder)
 	api.Get("/orders/me", middleware.RequireAuth(cfg), storeHandler.ListMyOrders)
 
 	// Payments
-	api.Post("/payments/stripe", middleware.RequireAuth(cfg), paymentHandler.CreateStripePayment)
+	api.Post("/payments/stripe", middleware.RequireFeature(flagRepo, "payments_stripe"), middleware.RequireAuth(cfg), paymentHandler.CreateStripePayment)
 	api.Post("/payments/stripe/webhook", paymentHandler.StripeWebhook)
-	api.Post("/payments/pix", middleware.RequireAuth(cfg), paymentHandler.CreatePixPayment)
-	api.Post("/payments/pix/:order_id/receipt", middleware.RequireAuth(cfg), paymentHandler.UploadPixReceipt)
+	api.Post("/payments/pix", middleware.RequireFeature(flagRepo, "payments_pix"), middleware.RequireAuth(cfg), paymentHandler.CreatePixPayment)
+	api.Post("/payments/pix/:order_id/receipt", middleware.RequireFeature(flagRepo, "payments_pix"), middleware.RequireAuth(cfg), paymentHandler.UploadPixReceipt)
 	admin.Put("/orders/:id/approve-pix", paymentHandler.ApprovePixPayment)
-	admin.Get("/pix-config", paymentHandler.GetPixConfig)
-	admin.Put("/pix-config", paymentHandler.UpdatePixConfig)
+	admin.Get("/pix-config", middleware.RequireFeature(flagRepo, "payments_pix"), paymentHandler.GetPixConfig)
+	admin.Put("/pix-config", middleware.RequireFeature(flagRepo, "payments_pix"), paymentHandler.UpdatePixConfig)
 
 	// Coupon — public validate
-	api.Post("/coupons/validate", couponHandler.ValidateCoupon)
+	api.Post("/coupons/validate", middleware.RequireFeature(flagRepo, "store_enabled"), couponHandler.ValidateCoupon)
 
 	// Store — admin routes
+	admin.Get("/products", storeHandler.AdminListProducts)
+	admin.Get("/categories", storeHandler.AdminListCategories)
 	admin.Post("/products", storeHandler.AdminCreateProduct)
 	admin.Put("/products/:id", storeHandler.AdminUpdateProduct)
 	admin.Delete("/products/:id", storeHandler.AdminDeleteProduct)
@@ -311,8 +342,8 @@ func main() {
 	admin.Delete("/coupons/:id", couponHandler.AdminDeleteCoupon)
 
 	// Blog — public routes
-	api.Get("/blog", blogHandler.ListPublished)
-	api.Get("/blog/:slug", blogHandler.GetBySlug)
+	api.Get("/blog", middleware.RequireFeature(flagRepo, "blog_enabled"), blogHandler.ListPublished)
+	api.Get("/blog/:slug", middleware.RequireFeature(flagRepo, "blog_enabled"), blogHandler.GetBySlug)
 
 	// Blog — admin routes
 	admin.Get("/blog", blogHandler.AdminListPosts)
@@ -320,10 +351,7 @@ func main() {
 	admin.Put("/blog/:id", blogHandler.AdminUpdatePost)
 	admin.Delete("/blog/:id", blogHandler.AdminDeletePost)
 	admin.Post("/blog/:id/cover", blogHandler.AdminUploadCover)
-	admin.Post("/blog/ai-generate", blogHandler.AdminAIGenerate)
-
-	// Audit middleware on admin group
-	admin.Use(middleware.AuditLog(auditLogRepo))
+	admin.Post("/blog/ai-generate", middleware.RequireFeature(flagRepo, "ai_blog_enabled"), blogHandler.AdminAIGenerate)
 
 	// Jobs routes
 	admin.Get("/jobs/handlers", jobsHandler.ListHandlers)
@@ -371,5 +399,9 @@ func main() {
 	app.Static("/static", cfg.UploadDir)
 
 	log.Printf("Server starting on :%s", cfg.Port)
-	log.Fatal(app.Listen(":" + cfg.Port))
+	if err := app.Listen(":" + cfg.Port); err != nil {
+		log.Printf("Server error: %v", err)
+		pool.Close()
+		return
+	}
 }

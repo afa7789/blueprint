@@ -35,6 +35,7 @@ func (l *Logger) Debug(ctx context.Context, msg string, meta ...map[string]inter
 }
 
 func (l *Logger) write(ctx context.Context, level, msg string, meta []map[string]interface{}) {
+	_ = ctx
 	// Always write to stdout
 	log.Printf("[%s] [%s] %s", level, l.source, msg)
 

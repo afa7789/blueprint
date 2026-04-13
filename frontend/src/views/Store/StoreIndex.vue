@@ -29,7 +29,7 @@
         </div>
         <div class="product-info">
           <h3 class="product-name">{{ product.name }}</h3>
-          <p class="product-price">${{ (product.price / 100).toFixed(2) }}</p>
+          <p class="product-price">{{ formatCurrency(product.price) }}</p>
         </div>
       </div>
     </div>
@@ -45,6 +45,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api } from '../../services/api'
+import { formatCurrency } from '../../utils/currency'
 
 interface Product {
   id: string
@@ -93,8 +94,8 @@ async function fetchProducts(p = 1) {
 
 async function fetchCategories() {
   try {
-    const data = await api.get<Category[]>('/api/v1/products/categories')
-    categories.value = data || []
+    const data = await api.get<{ data?: Category[] } | Category[]>('/api/v1/categories')
+    categories.value = (data as { data?: Category[] }).data || (Array.isArray(data) ? data : []) || []
   } catch {
     // categories optional
   }

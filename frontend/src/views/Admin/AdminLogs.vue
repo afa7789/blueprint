@@ -32,7 +32,7 @@
 
     <div class="log-list" ref="logContainer">
       <div v-for="(log, idx) in logs" :key="idx" class="log-line">
-        <span class="log-time">{{ formatDate(log.timestamp) }}</span>
+        <span class="log-time">{{ formatDate(log.created_at) }}</span>
         <span class="badge" :class="levelClass(log.level)">{{ log.level }}</span>
         <span class="log-source">{{ log.source }}</span>
         <span class="log-message">{{ log.message }}</span>
@@ -63,7 +63,7 @@
           </select>
         </label>
         <button class="btn-primary" @click="saveConfig">Save</button>
-        <button @click="cleanupNow">Cleanup Now</button>
+        <button @click="cleanupNow">Clear Logs</button>
       </div>
       <div v-if="cleanupMsg" class="success">{{ cleanupMsg }}</div>
     </div>
@@ -78,7 +78,7 @@ import HelperBox from '../../components/admin/HelperBox.vue'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 interface LogEntry {
-  timestamp: string
+  created_at: string
   level: string
   source: string
   message: string
@@ -114,8 +114,8 @@ async function loadLogs() {
     if (filters.value.level) params.set('level', filters.value.level)
     if (filters.value.source) params.set('source', filters.value.source)
     if (filters.value.search) params.set('search', filters.value.search)
-    if (filters.value.from) params.set('from', filters.value.from)
-    if (filters.value.to) params.set('to', filters.value.to)
+    if (filters.value.from) params.set('from', new Date(filters.value.from).toISOString())
+    if (filters.value.to) params.set('to', new Date(filters.value.to).toISOString())
     const data = await api.get<{ data: LogEntry[] }>(`/api/v1/admin/logs?${params}`)
     logs.value = data.data
   } catch (e: unknown) {
@@ -146,8 +146,9 @@ async function saveConfig() {
 async function cleanupNow() {
   cleanupMsg.value = ''
   try {
-    const data = await api.post<{ deleted: number }>('/api/v1/admin/logs/cleanup')
+    const data = await api.post<{ deleted: number }>('/api/v1/admin/logs/cleanup', { all: true })
     cleanupMsg.value = `Deleted ${data.deleted} log entries.`
+    await loadLogs()
   } catch (e: unknown) {
     configError.value = e instanceof Error ? e.message : 'Cleanup failed'
   }
@@ -167,7 +168,7 @@ function startStream() {
   const url = new URL(`${API_URL}/api/v1/admin/logs/stream`)
   if (filters.value.level) url.searchParams.set('level', filters.value.level)
   if (filters.value.source) url.searchParams.set('source', filters.value.source)
-  eventSource = new EventSource(url.toString())
+  eventSource = new EventSource(url.toString(), { withCredentials: true })
   eventSource.onmessage = async (event) => {
     try {
       const log = JSON.parse(event.data) as LogEntry

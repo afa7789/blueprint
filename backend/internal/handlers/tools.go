@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/afa/blueprint/backend/internal/domain"
@@ -84,17 +85,17 @@ func (h *ToolsHandler) DeleteTool(c *fiber.Ctx) error {
 // internalPingURL returns a Docker-internal URL for health checking.
 // External URLs (localhost:8083) don't work from inside Docker.
 func (h *ToolsHandler) internalPingURL(tool domain.AdminTool) string {
-	name := tool.Name
-	switch {
-	case name == "pgweb":
+	name := strings.ToLower(tool.Name)
+	switch name {
+	case "pgweb":
 		return "http://pgweb:8081"
-	case name == "Grafana" || name == "grafana":
+	case "grafana":
 		return "http://grafana:3000/grafana/login"
-	case name == "Prometheus" || name == "prometheus":
+	case "prometheus":
 		return "http://prometheus:9090/prometheus/-/healthy"
-	case name == "Redis Commander" || name == "redis-commander":
+	case "redis commander", "redis-commander":
 		return "" // not in compose by default
-	case name == "MinIO Console" || name == "minio":
+	case "minio console", "minio":
 		return "" // not in compose by default
 	}
 	// Fall back to configured URL
@@ -132,6 +133,6 @@ func (h *ToolsHandler) PingTool(c *fiber.Ctx) error {
 	if err != nil || resp.StatusCode >= 500 {
 		return c.JSON(fiber.Map{"status": "down", "latency_ms": latency})
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return c.JSON(fiber.Map{"status": "up", "latency_ms": latency})
 }

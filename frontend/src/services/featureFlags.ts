@@ -10,8 +10,8 @@ export interface FeatureFlag {
 const featureFlags = ref<FeatureFlag[]>([])
 let cached = false
 
-export async function fetchFeatureFlags(): Promise<FeatureFlag[]> {
-  if (cached && featureFlags.value.length > 0) {
+export async function fetchFeatureFlags(force = false): Promise<FeatureFlag[]> {
+  if (!force && cached && featureFlags.value.length > 0) {
     return featureFlags.value
   }
 
@@ -24,6 +24,31 @@ export async function fetchFeatureFlags(): Promise<FeatureFlag[]> {
   }
 
   return featureFlags.value
+}
+
+export function setFeatureFlagEnabled(key: string, enabled: boolean) {
+  const candidates = [key]
+  if (!key.endsWith('_enabled')) {
+    candidates.push(`${key}_enabled`)
+  }
+
+  const existing = featureFlags.value.find(flag => candidates.includes(flag.key))
+  if (existing) {
+    existing.enabled = enabled
+    cached = true
+    return
+  }
+
+  featureFlags.value.push({
+    id: Date.now(),
+    key: key.endsWith('_enabled') ? key : `${key}_enabled`,
+    enabled,
+  })
+  cached = true
+}
+
+export function invalidateFeatureFlags() {
+  cached = false
 }
 
 export function isFeatureEnabled(key: string): boolean {

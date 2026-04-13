@@ -15,7 +15,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -58,10 +57,9 @@ type HealthResponse struct {
 }
 
 var (
-	startTime     = time.Now()
-	lastStatus    string
-	statusChanged atomic.Bool
-	cfg           config
+	startTime  = time.Now()
+	lastStatus string
+	cfg        config
 )
 
 type config struct {
@@ -147,23 +145,27 @@ func calculateStatus(checks []HealthCheck) string {
 func checkRedis() HealthCheck {
 	addr := strings.TrimPrefix(cfg.RedisURL, "redis://")
 	if !strings.Contains(addr, ":") {
-		addr = addr + ":6379"
+		addr += ":6379"
 	}
 
 	conn, err := net.DialTimeout("tcp", addr, 5*time.Second)
 	if err != nil {
 		return HealthCheck{Name: "Redis", Type: "critical", Status: "down", Message: err.Error()}
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
-	conn.Write([]byte("*1\r\n$4\r\nPING\r\n"))
+	if _, err := conn.Write([]byte("*1\r\n$4\r\nPING\r\n")); err != nil {
+		return HealthCheck{Name: "Redis", Type: "critical", Status: "down", Message: err.Error()}
+	}
 	buf := make([]byte, 32)
 	n, _ := conn.Read(buf)
 	if n == 0 || !bytes.Contains(buf[:n], []byte("PONG")) {
 		return HealthCheck{Name: "Redis", Type: "critical", Status: "down", Message: "No PONG response"}
 	}
 
-	conn.Write([]byte("*2\r\n$6\r\nDBSIZE\r\n"))
+	if _, err := conn.Write([]byte("*2\r\n$6\r\nDBSIZE\r\n")); err != nil {
+		return HealthCheck{Name: "Redis", Type: "critical", Status: "down", Message: err.Error()}
+	}
 	n, _ = conn.Read(buf)
 	_ = n
 
@@ -178,7 +180,7 @@ func checkPostgres() HealthCheck {
 	if err != nil {
 		return HealthCheck{Name: "PostgreSQL", Type: "critical", Status: "down", Message: err.Error()}
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if err := db.PingContext(ctx); err != nil {
 		return HealthCheck{Name: "PostgreSQL", Type: "critical", Status: "down", Message: err.Error()}
@@ -200,7 +202,7 @@ func checkSMTP() HealthCheck {
 	if err != nil {
 		return HealthCheck{Name: "SMTP", Type: "degraded", Status: "down", Message: err.Error()}
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	return HealthCheck{Name: "SMTP", Type: "degraded", Status: "up", Message: "TCP dial OK"}
 }
 
@@ -214,7 +216,7 @@ func checkTelegram() HealthCheck {
 	if err != nil {
 		return HealthCheck{Name: "Telegram Bot", Type: "degraded", Status: "down", Message: err.Error()}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
 		return HealthCheck{Name: "Telegram Bot", Type: "degraded", Status: "down", Message: fmt.Sprintf("HTTP %d", resp.StatusCode)}
@@ -307,7 +309,7 @@ func checkSSL() HealthCheck {
 	if err != nil {
 		return HealthCheck{Name: "SSL", Type: "degraded", Status: "down", Message: err.Error()}
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	return HealthCheck{Name: "SSL", Type: "degraded", Status: "up", Message: "TCP dial :443 OK"}
 }
 
@@ -326,7 +328,7 @@ func checkAPI() HealthCheck {
 	if err != nil {
 		return HealthCheck{Name: "API", Type: "critical", Status: "down", Message: err.Error()}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 500 {
 		return HealthCheck{Name: "API", Type: "critical", Status: "down", Message: fmt.Sprintf("HTTP %d", resp.StatusCode)}
@@ -342,7 +344,11 @@ func sendTelegramAlert(newStatus string) {
 
 	msg := fmt.Sprintf("🔴 Health Monitor Alert: Status changed to *%s*", newStatus)
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?text=%s&chat_id=%s", cfg.TelegramBotToken, msg, os.Getenv("TELEGRAM_CHAT_ID"))
-	http.Get(url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -354,7 +360,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		if status == "unhealthy" {
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}
-		json.NewEncoder(w).Encode(HealthResponse{
+		_ = json.NewEncoder(w).Encode(HealthResponse{
 			Status:    status,
 			Timestamp: time.Now().Format(time.RFC3339),
 			Uptime:    time.Since(startTime).String(),
@@ -380,7 +386,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		Checks:    checks,
 	}
 
-	httpDotHTML.Execute(w, data)
+	_ = httpDotHTML.Execute(w, data)
 }
 
 func main() {
@@ -400,5 +406,5 @@ func main() {
 
 	http.HandleFunc("/", healthHandler)
 	fmt.Println("Health monitor started on :8081")
-	http.ListenAndServe(":8081", nil)
+	_ = http.ListenAndServe(":8081", nil)
 }

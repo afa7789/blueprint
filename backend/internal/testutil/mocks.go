@@ -440,6 +440,17 @@ func (m *MockOrderRepo) AddTrackingCode(_ context.Context, id, code string) erro
 	return nil
 }
 
+func (m *MockOrderRepo) UpdateReceiptURL(_ context.Context, id, url string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	o, ok := m.orders[id]
+	if !ok {
+		return errors.New("not found")
+	}
+	o.ReceiptURL = &url
+	return nil
+}
+
 // ---- MockCouponRepo ----
 
 type MockCouponRepo struct {

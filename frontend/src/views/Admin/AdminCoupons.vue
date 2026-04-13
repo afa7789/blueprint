@@ -15,22 +15,22 @@
           <th>Value</th>
           <th>Uses</th>
           <th>Expires</th>
-          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr v-if="coupons.length === 0">
-          <td colspan="6" class="empty-row">No coupons yet.</td>
+          <td colspan="5" class="empty-row">No coupons yet.</td>
         </tr>
         <tr v-for="coupon in coupons" :key="coupon.id">
           <td class="coupon-code">{{ coupon.code }}</td>
-          <td>{{ coupon.type }}</td>
-          <td>{{ coupon.type === 'percent' ? `${coupon.value}%` : `$${(coupon.value / 100).toFixed(2)}` }}</td>
-          <td>{{ coupon.uses_count }} / {{ coupon.max_uses ?? '∞' }}</td>
-          <td>{{ coupon.expires_at ? formatDate(coupon.expires_at) : 'Never' }}</td>
-          <td class="actions">
-            <button @click="deleteCoupon(coupon.id)" class="btn btn-danger btn-sm">Delete</button>
+          <td>
+            <span v-if="coupon.discount_type === 'percentage'">percentage</span>
+            <span v-else-if="coupon.discount_type === 'fixed'">fixed</span>
+            <span v-else>unknown</span>
           </td>
+          <td>{{ coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : (coupon.discount_type === 'fixed' ? formatCurrency(coupon.discount_value) : '-') }}</td>
+          <td>{{ coupon.uses_count }} / {{ coupon.max_uses ?? '∞' }}</td>
+          <td>{{ coupon.valid_until ? formatDate(coupon.valid_until) : 'Never' }}</td>
         </tr>
       </tbody>
     </table>
@@ -48,14 +48,14 @@
         <div class="form-row">
           <div class="form-group">
             <label>Type</label>
-            <select v-model="form.type" class="input">
-              <option value="percent">Percent off</option>
-              <option value="fixed">Fixed amount (cents)</option>
+            <select v-model="form.discount_type" class="input">
+              <option value="percentage">Percent off</option>
+              <option value="fixed">Fixed amount (R$)</option>
             </select>
           </div>
           <div class="form-group">
             <label>Value</label>
-            <input v-model.number="form.value" type="number" class="input" :placeholder="form.type === 'percent' ? '10' : '500'" />
+            <input v-model.number="form.discount_value" type="number" class="input" :placeholder="form.discount_type === 'percentage' ? '10' : '25'" />
           </div>
         </div>
 
@@ -66,7 +66,7 @@
           </div>
           <div class="form-group">
             <label>Expires At (optional)</label>
-            <input v-model="form.expires_at" type="date" class="input" />
+            <input v-model="form.valid_until" type="date" class="input" />
           </div>
         </div>
 
@@ -86,15 +86,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api } from '../../services/api'
+import { formatCurrency } from '../../utils/currency'
 
 interface Coupon {
   id: string
   code: string
-  type: 'percent' | 'fixed'
-  value: number
-  uses_count: number
+  discount_type: 'percentage' | 'fixed' | null
+  discount_value: number
+  used_count: number
+  uses_count?: number
   max_uses: number | null
-  expires_at: string | null
+  valid_until: string | null
 }
 
 const coupons = ref<Coupon[]>([])
@@ -106,10 +108,10 @@ const formError = ref('')
 
 const form = ref({
   code: '',
-  type: 'percent' as 'percent' | 'fixed',
-  value: 0,
+  discount_type: 'percentage' as 'percentage' | 'fixed',
+  discount_value: 0,
   max_uses: null as number | null,
-  expires_at: '',
+  valid_until: '',
 })
 
 async function fetchCoupons() {
@@ -117,7 +119,10 @@ async function fetchCoupons() {
   error.value = ''
   try {
     const data = await api.get<{ data: Coupon[] }>('/api/v1/admin/coupons')
-    coupons.value = data.data || []
+    coupons.value = (data.data || []).map(coupon => ({
+      ...coupon,
+      uses_count: coupon.used_count,
+    }))
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load coupons'
   } finally {
@@ -126,7 +131,7 @@ async function fetchCoupons() {
 }
 
 function openCreate() {
-  form.value = { code: '', type: 'percent', value: 0, max_uses: null, expires_at: '' }
+  form.value = { code: '', discount_type: 'percentage', discount_value: 0, max_uses: null, valid_until: '' }
   formError.value = ''
   showForm.value = true
 }
@@ -140,9 +145,12 @@ async function submitForm() {
   formError.value = ''
   try {
     const payload = {
-      ...form.value,
+      code: form.value.code,
+      discount_type: form.value.discount_type,
+      discount_value: form.value.discount_value,
       max_uses: form.value.max_uses || null,
-      expires_at: form.value.expires_at || null,
+      valid_until: form.value.valid_until || null,
+      is_active: true,
     }
     await api.post('/api/v1/admin/coupons', payload)
     await fetchCoupons()
@@ -151,16 +159,6 @@ async function submitForm() {
     formError.value = e instanceof Error ? e.message : 'Failed to create coupon'
   } finally {
     formSubmitting.value = false
-  }
-}
-
-async function deleteCoupon(id: string) {
-  if (!confirm('Delete this coupon?')) return
-  try {
-    await api.delete(`/api/v1/admin/coupons/${id}`)
-    await fetchCoupons()
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to delete coupon'
   }
 }
 

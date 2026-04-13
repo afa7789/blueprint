@@ -1,4 +1,9 @@
-.PHONY: up down logs backend frontend build deploy ngrok
+.PHONY: up down logs backend frontend build deploy ngrok \
+	test test-backend test-frontend \
+	lint lint-backend lint-frontend \
+	fmt fmt-backend fmt-frontend \
+	typecheck tidy vet \
+	check ci clean help
 
 # === Local Development (tudo via Docker, 1 porta) ===
 
@@ -72,6 +77,58 @@ deploy:
 
 deploy-dry:
 	bash scripts/deploy.sh --all --dry-run
+
+# === Quality: test, lint, format, typecheck ===
+
+## Run all tests (backend + frontend)
+test: test-backend test-frontend
+
+test-backend:
+	cd backend && go test ./... -race -count=1
+
+test-frontend:
+	cd frontend && bun run test
+
+## Lint (static analysis). Backend uses golangci-lint; frontend uses vue-tsc typecheck.
+lint: lint-backend lint-frontend
+
+lint-backend:
+	@command -v golangci-lint >/dev/null 2>&1 || { \
+		echo "golangci-lint not found. Install: brew install golangci-lint"; exit 1; }
+	cd backend && golangci-lint run ./...
+
+lint-frontend: typecheck
+
+typecheck:
+	cd frontend && bun run vue-tsc --noEmit
+
+## Format code in place
+fmt: fmt-backend fmt-frontend
+
+fmt-backend:
+	cd backend && gofmt -s -w . && go vet ./...
+
+fmt-frontend:
+	@echo "(no formatter configured for frontend — skipping)"
+
+vet:
+	cd backend && go vet ./...
+
+tidy:
+	cd backend && go mod tidy
+
+## Aggregate checks used locally and in CI
+check: fmt-backend lint test
+
+ci: lint test
+	@echo "CI checks passed."
+
+clean:
+	rm -rf build/ frontend/dist/ backend/tmp/
+
+help:
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # === Admin User ===
 

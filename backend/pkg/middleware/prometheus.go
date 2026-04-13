@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/afa/blueprint/backend/pkg/metrics"
+	"github.com/gofiber/fiber/v2"
 )
 
 func PrometheusMiddleware() fiber.Handler {

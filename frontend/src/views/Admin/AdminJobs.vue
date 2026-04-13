@@ -33,8 +33,8 @@
                   {{ job.is_active ? 'active' : 'paused' }}
                 </span>
               </td>
-              <td>{{ job.last_run ? formatDate(job.last_run) : '—' }}</td>
-              <td>{{ job.next_run ? formatDate(job.next_run) : '—' }}</td>
+              <td>{{ job.last_run_at ? formatDate(job.last_run_at) : '—' }}</td>
+              <td>{{ job.next_run_at ? formatDate(job.next_run_at) : '—' }}</td>
               <td class="actions">
                 <button v-if="job.is_active" @click="pauseJob(job.id)">Pause</button>
                 <button v-else @click="resumeJob(job.id)">Resume</button>
@@ -120,8 +120,8 @@ interface Job {
   schedule: string
   handler: string
   is_active: boolean
-  last_run: string | null
-  next_run: string | null
+  last_run_at: string | null
+  next_run_at: string | null
 }
 
 interface Execution {

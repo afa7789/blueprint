@@ -8,8 +8,8 @@ import { useAuthStore } from './stores/auth'
 import { useRouter } from 'vue-router'
 import { useTheme } from './composables/useTheme'
 import { useAccessibility } from './composables/useAccessibility'
-import { ref, onMounted } from 'vue'
-import { fetchFeatureFlags, isFeatureEnabled } from './services/featureFlags'
+import { computed, onMounted } from 'vue'
+import { loadSiteModules, siteModules } from './services/siteModules'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -18,13 +18,11 @@ loadTheme()
 const { init } = useAccessibility()
 init()
 
-const storeEnabled = ref(false)
-const blogEnabled = ref(false)
+const storeVisible = computed(() => siteModules.storeEnabled && siteModules.hasStoreContent)
+const blogVisible = computed(() => siteModules.blogEnabled && siteModules.hasBlogContent)
 
-onMounted(async () => {
-  await fetchFeatureFlags()
-  storeEnabled.value = isFeatureEnabled('store')
-  blogEnabled.value = isFeatureEnabled('blog')
+onMounted(() => {
+  loadSiteModules()
 })
 
 async function logout() {
@@ -41,8 +39,8 @@ async function logout() {
         <span class="brand-name">Blueprint</span>
       </router-link>
       <div class="top-nav-center">
-        <router-link v-if="storeEnabled" to="/store"><i class="fas fa-store"></i> Store</router-link>
-        <router-link v-if="blogEnabled" to="/blog"><i class="fas fa-pen-to-square"></i> Blog</router-link>
+        <router-link v-if="storeVisible" to="/store"><i class="fas fa-store"></i> Store</router-link>
+        <router-link v-if="blogVisible" to="/blog"><i class="fas fa-pen-to-square"></i> Blog</router-link>
       </div>
       <div class="top-nav-right">
         <template v-if="auth.isAuthenticated">
