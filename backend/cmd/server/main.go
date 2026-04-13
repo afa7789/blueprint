@@ -42,7 +42,8 @@ func main() {
 	// Migrations
 	if err := database.RunMigrations(migrations.FS, cfg.DBMURL); err != nil {
 		pool.Close()
-		log.Fatalf("Migrations failed: %v", err)
+		log.Printf("Migrations failed: %v", err)
+		return
 	}
 	log.Println("Migrations applied")
 
@@ -398,5 +399,9 @@ func main() {
 	app.Static("/static", cfg.UploadDir)
 
 	log.Printf("Server starting on :%s", cfg.Port)
-	log.Fatal(app.Listen(":" + cfg.Port))
+	if err := app.Listen(":" + cfg.Port); err != nil {
+		log.Printf("Server error: %v", err)
+		pool.Close()
+		return
+	}
 }

@@ -284,7 +284,7 @@ func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadGateway, "failed to reach OpenAI")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -28,6 +28,7 @@ func TestRateLimit_NilRedis_PassesThrough(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != 200 {
 			t.Fatalf("request %d: expected 200 with nil redis, got %d", i+1, resp.StatusCode)
 		}
@@ -54,6 +55,7 @@ func TestRateLimit_Headers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}

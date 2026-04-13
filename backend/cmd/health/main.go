@@ -202,7 +202,7 @@ func checkSMTP() HealthCheck {
 	if err != nil {
 		return HealthCheck{Name: "SMTP", Type: "degraded", Status: "down", Message: err.Error()}
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	return HealthCheck{Name: "SMTP", Type: "degraded", Status: "up", Message: "TCP dial OK"}
 }
 
@@ -309,7 +309,7 @@ func checkSSL() HealthCheck {
 	if err != nil {
 		return HealthCheck{Name: "SSL", Type: "degraded", Status: "down", Message: err.Error()}
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	return HealthCheck{Name: "SSL", Type: "degraded", Status: "up", Message: "TCP dial :443 OK"}
 }
 
@@ -344,7 +344,11 @@ func sendTelegramAlert(newStatus string) {
 
 	msg := fmt.Sprintf("🔴 Health Monitor Alert: Status changed to *%s*", newStatus)
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?text=%s&chat_id=%s", cfg.TelegramBotToken, msg, os.Getenv("TELEGRAM_CHAT_ID"))
-	_, _ = http.Get(url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {

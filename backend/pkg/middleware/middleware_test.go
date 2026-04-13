@@ -54,6 +54,7 @@ func TestRequireAuth_ValidToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -74,6 +75,7 @@ func TestRequireAuth_ExpiredToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 401 {
 		t.Fatalf("expected 401, got %d", resp.StatusCode)
 	}
@@ -93,6 +95,7 @@ func TestRequireAuth_InvalidToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 401 {
 		t.Fatalf("expected 401, got %d", resp.StatusCode)
 	}
@@ -110,6 +113,7 @@ func TestRequireAuth_NoToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 401 {
 		t.Fatalf("expected 401, got %d", resp.StatusCode)
 	}
@@ -130,6 +134,7 @@ func TestRequireRole_Allowed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -150,6 +155,7 @@ func TestRequireRole_Forbidden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 403 {
 		t.Fatalf("expected 403, got %d", resp.StatusCode)
 	}
@@ -200,6 +206,7 @@ func TestRequireFeature_NilRepo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200 (fail-open), got %d", resp.StatusCode)
 	}
@@ -217,6 +224,7 @@ func TestRequireFeature_RepoError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 500 {
 		t.Fatalf("expected 500, got %d", resp.StatusCode)
 	}
@@ -236,6 +244,7 @@ func TestRequireFeature_Enabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -255,6 +264,7 @@ func TestRequireFeature_Disabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 404 {
 		t.Fatalf("expected 404, got %d", resp.StatusCode)
 	}
@@ -277,6 +287,7 @@ func TestRequireAnyFeature_OneEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -299,6 +310,7 @@ func TestRequireAnyFeature_NoneEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 404 {
 		t.Fatalf("expected 404, got %d", resp.StatusCode)
 	}
