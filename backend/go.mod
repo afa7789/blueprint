@@ -1,6 +1,6 @@
 module github.com/afa/blueprint/backend
 
-go 1.24
+go 1.25.0
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.0
