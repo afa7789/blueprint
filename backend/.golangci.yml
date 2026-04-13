@@ -12,15 +12,13 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-    - gosimple
     - gocritic
-    - gofmt
-    - goimports
     - misspell
     - unconvert
     - unparam
     - bodyclose
-    - nilerr
+    - errname
+    - errorlint
     - revive
 
   settings:
