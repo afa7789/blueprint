@@ -30,7 +30,7 @@ func testConfig() *config.Config {
 // hit the default 1s timeout under `-race`.
 const testTimeout = -1
 
-func setupAuthApp() (*fiber.App, *handlers.AuthHandler) {
+func setupAuthApp() *fiber.App {
 	app := fiber.New()
 	userRepo := testutil.NewMockUserRepo()
 	flagRepo := testutil.NewMockFeatureFlagRepo()
@@ -43,7 +43,7 @@ func setupAuthApp() (*fiber.App, *handlers.AuthHandler) {
 	app.Post("/refresh", h.Refresh)
 	app.Get("/me", middleware.RequireAuth(cfg), h.Me)
 
-	return app, h
+	return app
 }
 
 func jsonBody(v any) *bytes.Buffer {
@@ -52,7 +52,7 @@ func jsonBody(v any) *bytes.Buffer {
 }
 
 func TestRegister_Success(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodPost, "/register", jsonBody(map[string]string{
 		"email":    "alice@example.com",
@@ -79,7 +79,7 @@ func TestRegister_Success(t *testing.T) {
 }
 
 func TestRegister_DuplicateEmail(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	payload := jsonBody(map[string]string{"email": "bob@example.com", "password": "secret123"})
 	req := httptest.NewRequest(http.MethodPost, "/register", payload)
@@ -101,7 +101,7 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 }
 
 func TestRegister_MissingFields(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	cases := []map[string]string{
 		{"email": "", "password": "secret"},
@@ -122,7 +122,7 @@ func TestRegister_MissingFields(t *testing.T) {
 }
 
 func TestLogin_Success(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	// Register first
 	req := httptest.NewRequest(http.MethodPost, "/register", jsonBody(map[string]string{
@@ -151,7 +151,7 @@ func TestLogin_Success(t *testing.T) {
 }
 
 func TestLogin_WrongPassword(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodPost, "/register", jsonBody(map[string]string{
 		"email": "dave@example.com", "password": "correct",
@@ -173,7 +173,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 }
 
 func TestLogin_NonexistentEmail(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodPost, "/login", jsonBody(map[string]string{
 		"email": "ghost@example.com", "password": "pass",
@@ -189,7 +189,7 @@ func TestLogin_NonexistentEmail(t *testing.T) {
 }
 
 func TestMe_WithValidToken(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 	cfg := testConfig()
 
 	// Register to get a real user
@@ -221,7 +221,7 @@ func TestMe_WithValidToken(t *testing.T) {
 }
 
 func TestMe_WithoutToken(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodGet, "/me", nil)
 	resp, err := app.Test(req, testTimeout)
@@ -234,7 +234,7 @@ func TestMe_WithoutToken(t *testing.T) {
 }
 
 func TestRefresh_Success(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	// Register to get cookies
 	req := httptest.NewRequest(http.MethodPost, "/register", jsonBody(map[string]string{
@@ -274,7 +274,7 @@ func TestRefresh_Success(t *testing.T) {
 }
 
 func TestLogout_ClearsCookies(t *testing.T) {
-	app, _ := setupAuthApp()
+	app := setupAuthApp()
 
 	req := httptest.NewRequest(http.MethodPost, "/logout", nil)
 	resp, err := app.Test(req, testTimeout)

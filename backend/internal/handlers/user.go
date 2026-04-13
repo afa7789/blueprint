@@ -8,10 +8,10 @@ import (
 	"github.com/afa/blueprint/backend/pkg/config"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	stripe "github.com/stripe/stripe-go/v82"
 	stripecustomer "github.com/stripe/stripe-go/v82/customer"
 	stripepaymentmethod "github.com/stripe/stripe-go/v82/paymentmethod"
 	stripesetupintent "github.com/stripe/stripe-go/v82/setupintent"
-	stripe "github.com/stripe/stripe-go/v82"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -186,7 +186,7 @@ func (h *UserHandler) CreateSetupIntent(c *fiber.Ctx) error {
 	}
 
 	si, err := stripesetupintent.New(&stripe.SetupIntentParams{
-		Customer: u.StripeCustomerID,
+		Customer:           u.StripeCustomerID,
 		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
 	})
 	if err != nil {
@@ -263,4 +263,3 @@ func (h *UserHandler) DeleteSavedCard(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"success": true})
 }
-

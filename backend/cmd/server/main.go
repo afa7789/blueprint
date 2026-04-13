@@ -3,6 +3,7 @@ package main
 import (
 	c "context"
 	"encoding/json"
+	"errors"
 	"log"
 	"time"
 
@@ -40,6 +41,7 @@ func main() {
 
 	// Migrations
 	if err := database.RunMigrations(migrations.FS, cfg.DBMURL); err != nil {
+		pool.Close()
 		log.Fatalf("Migrations failed: %v", err)
 	}
 	log.Println("Migrations applied")
@@ -56,8 +58,9 @@ func main() {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
-			if e, ok := err.(*fiber.Error); ok {
-				code = e.Code
+			var fe *fiber.Error
+			if errors.As(err, &fe) {
+				code = fe.Code
 			}
 			return c.Status(code).JSON(fiber.Map{"error": err.Error()})
 		},
@@ -132,13 +135,13 @@ func main() {
 		for {
 			var count int64
 			ctx := c.Background()
-			pool.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
+			_ = pool.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
 			metrics.UsersTotal.Set(float64(count))
-			pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE is_active = true").Scan(&count)
+			_ = pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE is_active = true").Scan(&count)
 			metrics.ProductsTotal.Set(float64(count))
-			pool.QueryRow(ctx, "SELECT COUNT(*) FROM blog_posts").Scan(&count)
+			_ = pool.QueryRow(ctx, "SELECT COUNT(*) FROM blog_posts").Scan(&count)
 			metrics.BlogPostsTotal.Set(float64(count))
-			pool.QueryRow(ctx, "SELECT COUNT(*) FROM waitlist").Scan(&count)
+			_ = pool.QueryRow(ctx, "SELECT COUNT(*) FROM waitlist").Scan(&count)
 			metrics.WaitlistTotal.Set(float64(count))
 			time.Sleep(60 * time.Second)
 		}
@@ -173,7 +176,7 @@ func main() {
 	jobRegistry := handlers.NewJobRegistry()
 	jobRegistry.Register("system.noop", func(_ c.Context) (json.RawMessage, error) {
 		payload, _ := json.Marshal(map[string]interface{}{
-			"ok":         true,
+			"ok":          true,
 			"executed_at": time.Now().UTC(),
 		})
 		return payload, nil

@@ -94,24 +94,32 @@ func (h *LogsHandler) StreamLogs(c *fiber.Ctx) error {
 		ticker := time.NewTicker(2 * time.Second)
 		defer ticker.Stop()
 
-		for {
-			select {
-			case <-ticker.C:
-				logs, err := h.appLogs.LatestSince(context.Background(), lastID, 50)
-				if err != nil || len(logs) == 0 {
-					// Send keepalive
-					fmt.Fprintf(w, ": keepalive\n\n")
-					w.Flush()
+		for range ticker.C {
+			logs, err := h.appLogs.LatestSince(context.Background(), lastID, 50)
+			if err != nil || len(logs) == 0 {
+				if _, err := fmt.Fprintf(w, ": keepalive\n\n"); err != nil {
+					return
+				}
+				if err := w.Flush(); err != nil {
+					return
+				}
+				continue
+			}
+
+			for _, entry := range logs {
+				data, err := json.Marshal(entry)
+				if err != nil {
 					continue
 				}
-				for _, entry := range logs {
-					data, _ := json.Marshal(entry)
-					fmt.Fprintf(w, "data: %s\n\n", data)
-					if entry.ID > lastID {
-						lastID = entry.ID
-					}
+				if _, err := fmt.Fprintf(w, "data: %s\n\n", data); err != nil {
+					return
 				}
-				w.Flush()
+				if entry.ID > lastID {
+					lastID = entry.ID
+				}
+			}
+			if err := w.Flush(); err != nil {
+				return
 			}
 		}
 	})

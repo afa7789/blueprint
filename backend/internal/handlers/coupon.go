@@ -52,9 +52,9 @@ func (h *CouponHandler) ValidateCoupon(c *fiber.Ctx) error {
 
 	discount := applyDiscount(coupon, req.Subtotal)
 	return c.JSON(fiber.Map{
-		"coupon":        coupon,
-		"discount":      discount,
-		"final_total":   req.Subtotal - discount,
+		"coupon":      coupon,
+		"discount":    discount,
+		"final_total": req.Subtotal - discount,
 	})
 }
 

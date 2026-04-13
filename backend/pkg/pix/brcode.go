@@ -50,7 +50,7 @@ func crc16(str string) string {
 			if crc&0x8000 != 0 {
 				crc = (crc << 1) ^ 0x1021
 			} else {
-				crc = crc << 1
+				crc <<= 1
 			}
 		}
 	}

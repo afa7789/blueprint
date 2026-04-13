@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"github.com/afa/blueprint/backend/internal/domain"
+	"github.com/gofiber/fiber/v2"
 )
 
 type FeatureFlagHandler struct {

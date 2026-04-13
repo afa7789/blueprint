@@ -13,9 +13,9 @@ import (
 )
 
 type PaymentHandler struct {
-	orders  domain.OrderRepository
-	pixCfg  domain.PixConfigRepository
-	cfg     *config.Config
+	orders domain.OrderRepository
+	pixCfg domain.PixConfigRepository
+	cfg    *config.Config
 }
 
 func NewPaymentHandler(orders domain.OrderRepository, pixCfg domain.PixConfigRepository, cfg *config.Config) *PaymentHandler {
@@ -120,7 +120,9 @@ func (h *PaymentHandler) CreatePixPayment(c *fiber.Ctx) error {
 	txID := fmt.Sprintf("TX_%s", order.ID)
 	paymentMethod := "pix_manual"
 
-	h.orders.UpdatePayment(c.Context(), order.ID, paymentMethod, txID)
+	if err := h.orders.UpdatePayment(c.Context(), order.ID, paymentMethod, txID); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to update payment: "+err.Error())
+	}
 
 	brcode := pix.GeneratePayload(pixCfg.PixKey, pixCfg.Beneficiary, pixCfg.City, int64(order.Total*100))
 

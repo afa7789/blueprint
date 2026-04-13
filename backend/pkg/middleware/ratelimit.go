@@ -13,8 +13,8 @@ import (
 )
 
 type RateLimitConfig struct {
-	Max     int           // max requests
-	Window  time.Duration // time window
+	Max     int                     // max requests
+	Window  time.Duration           // time window
 	KeyFunc func(*fiber.Ctx) string // how to identify the client
 }
 
