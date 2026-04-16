@@ -472,7 +472,10 @@ func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 }
 
 func feedToXML(feed interface{}) string {
-	b, _ := xml.MarshalIndent(feed, "", "  ")
+	b, err := xml.MarshalIndent(feed, "", "  ")
+	if err != nil {
+		return ""
+	}
 	return string(b)
 }
 
