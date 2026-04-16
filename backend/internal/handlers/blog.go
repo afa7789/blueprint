@@ -136,7 +136,8 @@ func (h *BlogHandler) RSSFeed(c *fiber.Ctx) error {
 	}
 
 	feed := rssFeed{
-		XMLName: xml.Name{Local: "rss", Space: ""},
+		XMLName: xml.Name{Local: "rss"},
+		Version: "2.0",
 		Channel: rssChannel{
 			Title:       "Blog",
 			Link:        h.cfg.FrontendURL + "/blog",
@@ -145,7 +146,6 @@ func (h *BlogHandler) RSSFeed(c *fiber.Ctx) error {
 			Items:       items,
 		},
 	}
-	feed.XMLName.Local = "rss"
 
 	c.Set("Content-Type", "application/rss+xml; charset=utf-8")
 	return c.SendString(xml.Header + feedToXML(feed))
@@ -180,7 +180,8 @@ func (h *BlogHandler) AtomFeed(c *fiber.Ctx) error {
 
 	now := time.Now().Format(time.RFC3339)
 	feed := atomFeed{
-		XMLName: xml.Name{Local: "feed", Space: "http://www.w3.org/2005/Atom"},
+		XMLName: xml.Name{Local: "feed"},
+		Xmlns:   "http://www.w3.org/2005/Atom",
 		Title:   "Blog",
 		ID:      h.cfg.FrontendURL + "/blog",
 		Updated: now,
