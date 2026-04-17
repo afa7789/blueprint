@@ -343,6 +343,8 @@ func main() {
 
 	// Blog — public routes
 	api.Get("/blog", middleware.RequireFeature(flagRepo, "blog_enabled"), blogHandler.ListPublished)
+	api.Get("/blog/rss.xml", middleware.RequireFeature(flagRepo, "blog_enabled"), blogHandler.RSSFeed)
+	api.Get("/blog/atom.xml", middleware.RequireFeature(flagRepo, "blog_enabled"), blogHandler.AtomFeed)
 	api.Get("/blog/:slug", middleware.RequireFeature(flagRepo, "blog_enabled"), blogHandler.GetBySlug)
 
 	// Blog — admin routes

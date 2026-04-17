@@ -502,3 +502,87 @@ func (m *MockCouponRepo) List(_ context.Context) ([]domain.Coupon, error) {
 	}
 	return result, nil
 }
+
+// ---- MockBlogRepo ----
+
+type MockBlogRepo struct {
+	mu    sync.RWMutex
+	posts map[string]*domain.BlogPost // keyed by ID
+}
+
+func NewMockBlogRepo() *MockBlogRepo {
+	return &MockBlogRepo{posts: make(map[string]*domain.BlogPost)}
+}
+
+func (m *MockBlogRepo) FindBySlug(_ context.Context, slug string) (*domain.BlogPost, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	for _, p := range m.posts {
+		if p.Slug == slug {
+			copy := *p
+			return &copy, nil
+		}
+	}
+	return nil, errors.New("not found")
+}
+
+func (m *MockBlogRepo) FindByID(_ context.Context, id string) (*domain.BlogPost, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	p, ok := m.posts[id]
+	if !ok {
+		return nil, errors.New("not found")
+	}
+	copy := *p
+	return &copy, nil
+}
+
+func (m *MockBlogRepo) List(_ context.Context, status string, offset, limit int) ([]domain.BlogPost, int, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	all := make([]domain.BlogPost, 0)
+	for _, p := range m.posts {
+		if status == "" || p.Status == status {
+			all = append(all, *p)
+		}
+	}
+	total := len(all)
+	if offset >= total {
+		return []domain.BlogPost{}, total, nil
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	return all[offset:end], total, nil
+}
+
+func (m *MockBlogRepo) Create(_ context.Context, p *domain.BlogPost) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if p.ID == "" {
+		p.ID = "post-" + time.Now().Format("20060102150405")
+	}
+	p.CreatedAt = time.Now()
+	copy := *p
+	m.posts[p.ID] = &copy
+	return nil
+}
+
+func (m *MockBlogRepo) Update(_ context.Context, p *domain.BlogPost) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.posts[p.ID]; !ok {
+		return errors.New("not found")
+	}
+	copy := *p
+	m.posts[p.ID] = &copy
+	return nil
+}
+
+func (m *MockBlogRepo) Delete(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.posts, id)
+	return nil
+}

@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"io"
 	"net/http"
 	"regexp"
@@ -27,6 +28,64 @@ type blogAIResponse struct {
 	Slug    string `json:"slug"`
 	Excerpt string `json:"excerpt"`
 	Content string `json:"content"`
+}
+
+type rssGUID struct {
+	XMLName     xml.Name `xml:"guid"`
+	Value       string   `xml:",chardata"`
+	IsPermaLink string   `xml:"isPermaLink,attr"`
+}
+
+type rssItem struct {
+	Title       string  `xml:"title"`
+	Link        string  `xml:"link"`
+	Description string  `xml:"description"`
+	PubDate     string  `xml:"pubDate"`
+	GUID        rssGUID `xml:"guid"`
+}
+
+type rssChannel struct {
+	Title       string    `xml:"title"`
+	Link        string    `xml:"link"`
+	Description string    `xml:"description"`
+	Language    string    `xml:"language"`
+	Items       []rssItem `xml:"item"`
+}
+
+type rssFeed struct {
+	XMLName xml.Name   `xml:"rss"`
+	Version string     `xml:"version,attr"`
+	Channel rssChannel `xml:"channel"`
+}
+
+type atomLink struct {
+	Href string `xml:"href,attr"`
+	Rel  string `xml:"rel,attr,omitempty"`
+	Type string `xml:"type,attr,omitempty"`
+}
+
+type atomAuthor struct {
+	XMLName xml.Name `xml:"author"`
+	Name    string   `xml:"name"`
+}
+
+type atomEntry struct {
+	Title   string   `xml:"title"`
+	ID      string   `xml:"id"`
+	Updated string   `xml:"updated"`
+	Summary string   `xml:"summary"`
+	Link    atomLink `xml:"link"`
+}
+
+type atomFeed struct {
+	XMLName xml.Name    `xml:"feed"`
+	Xmlns   string      `xml:"xmlns,attr"`
+	Title   string      `xml:"title"`
+	ID      string      `xml:"id"`
+	Updated string      `xml:"updated"`
+	Link    atomLink    `xml:"link"`
+	Author  atomAuthor  `xml:"author"`
+	Entries []atomEntry `xml:"entry"`
 }
 
 func NewBlogHandler(blog domain.BlogRepository, cfg *config.Config) *BlogHandler {
@@ -63,6 +122,114 @@ func (h *BlogHandler) GetBySlug(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, "post not found")
 	}
 	return c.JSON(post)
+}
+
+func (h *BlogHandler) RSSFeed(c *fiber.Ctx) error {
+	posts, _, err := h.blog.List(c.Context(), "published", 0, 20)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	items := make([]rssItem, len(posts))
+	for i, p := range posts {
+		desc := ""
+		if p.Excerpt != nil {
+			desc = *p.Excerpt
+		}
+		pubDate := ""
+		if p.PublishedAt != nil {
+			pubDate = p.PublishedAt.Format(time.RFC1123Z)
+		}
+		items[i] = rssItem{
+			Title:       p.Title,
+			Link:        h.cfg.FrontendURL + "/blog/" + p.Slug,
+			Description: desc,
+			PubDate:     pubDate,
+			GUID:        rssGUID{Value: p.ID, IsPermaLink: "false"},
+		}
+	}
+
+	feed := rssFeed{
+		XMLName: xml.Name{Local: "rss"},
+		Version: "2.0",
+		Channel: rssChannel{
+			Title:       "Blog",
+			Link:        h.cfg.FrontendURL + "/blog",
+			Description: "Latest blog posts",
+			Language:    "en-us",
+			Items:       items,
+		},
+	}
+
+	xmlStr, err := feedToXML(feed)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	c.Set("Content-Type", "application/rss+xml; charset=utf-8")
+	return c.SendString(xml.Header + xmlStr)
+}
+
+func (h *BlogHandler) AtomFeed(c *fiber.Ctx) error {
+	posts, _, err := h.blog.List(c.Context(), "published", 0, 20)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	entries := make([]atomEntry, len(posts))
+	var feedUpdated time.Time
+	for i, p := range posts {
+		summary := ""
+		if p.Excerpt != nil {
+			summary = *p.Excerpt
+		}
+		updated := ""
+		if p.PublishedAt != nil {
+			updated = p.PublishedAt.Format(time.RFC3339)
+			if feedUpdated.IsZero() || p.PublishedAt.After(feedUpdated) {
+				feedUpdated = *p.PublishedAt
+			}
+		}
+		entries[i] = atomEntry{
+			Title:   p.Title,
+			ID:      h.cfg.FrontendURL + "/blog/" + p.Slug,
+			Updated: updated,
+			Summary: summary,
+			Link: atomLink{
+				Href: h.cfg.FrontendURL + "/blog/" + p.Slug,
+			},
+		}
+	}
+
+	feedUpdatedStr := time.Now().Format(time.RFC3339)
+	if !feedUpdated.IsZero() {
+		feedUpdatedStr = feedUpdated.Format(time.RFC3339)
+	}
+
+	feed := atomFeed{
+		XMLName: xml.Name{Local: "feed"},
+		Xmlns:   "http://www.w3.org/2005/Atom",
+		Title:   "Blog",
+		ID:      h.cfg.FrontendURL + "/blog",
+		Updated: feedUpdatedStr,
+		Link: atomLink{
+			Href: h.cfg.FrontendURL + "/blog/atom.xml",
+			Rel:  "self",
+			Type: "application/atom+xml",
+		},
+		Author: atomAuthor{
+			Name: "Blog Author",
+		},
+		Entries: entries,
+	}
+
+	xmlStr, err := feedToXML(feed)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	c.Set("Content-Type", "application/atom+xml; charset=utf-8")
+	return c.SendString(xml.Header + xmlStr)
 }
 
 // ---- Admin routes ----
@@ -339,6 +506,14 @@ func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 	generated.Slug = slugify(generated.Slug)
 
 	return c.JSON(generated)
+}
+
+func feedToXML(feed interface{}) (string, error) {
+	b, err := xml.MarshalIndent(feed, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 func applyPublishedState(post *domain.BlogPost) {
