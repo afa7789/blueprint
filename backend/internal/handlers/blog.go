@@ -30,12 +30,18 @@ type blogAIResponse struct {
 	Content string `json:"content"`
 }
 
+type rssGUID struct {
+	XMLName     xml.Name `xml:"guid"`
+	Value       string   `xml:",chardata"`
+	IsPermaLink string   `xml:"isPermaLink,attr"`
+}
+
 type rssItem struct {
-	Title       string `xml:"title"`
-	Link        string `xml:"link"`
-	Description string `xml:"description"`
-	PubDate     string `xml:"pubDate"`
-	GUID        string `xml:"guid"`
+	Title       string  `xml:"title"`
+	Link        string  `xml:"link"`
+	Description string  `xml:"description"`
+	PubDate     string  `xml:"pubDate"`
+	GUID        rssGUID `xml:"guid"`
 }
 
 type rssChannel struct {
@@ -54,6 +60,13 @@ type rssFeed struct {
 
 type atomLink struct {
 	Href string `xml:"href,attr"`
+	Rel  string `xml:"rel,attr,omitempty"`
+	Type string `xml:"type,attr,omitempty"`
+}
+
+type atomAuthor struct {
+	XMLName xml.Name `xml:"author"`
+	Name    string   `xml:"name"`
 }
 
 type atomEntry struct {
@@ -71,6 +84,7 @@ type atomFeed struct {
 	ID      string      `xml:"id"`
 	Updated string      `xml:"updated"`
 	Link    atomLink    `xml:"link"`
+	Author  atomAuthor  `xml:"author"`
 	Entries []atomEntry `xml:"entry"`
 }
 
@@ -131,7 +145,7 @@ func (h *BlogHandler) RSSFeed(c *fiber.Ctx) error {
 			Link:        h.cfg.FrontendURL + "/blog/" + p.Slug,
 			Description: desc,
 			PubDate:     pubDate,
-			GUID:        p.ID,
+			GUID:        rssGUID{Value: p.ID, IsPermaLink: "false"},
 		}
 	}
 
@@ -147,8 +161,13 @@ func (h *BlogHandler) RSSFeed(c *fiber.Ctx) error {
 		},
 	}
 
+	xmlStr, err := feedToXML(feed)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
 	c.Set("Content-Type", "application/rss+xml; charset=utf-8")
-	return c.SendString(xml.Header + feedToXML(feed))
+	return c.SendString(xml.Header + xmlStr)
 }
 
 func (h *BlogHandler) AtomFeed(c *fiber.Ctx) error {
@@ -158,14 +177,18 @@ func (h *BlogHandler) AtomFeed(c *fiber.Ctx) error {
 	}
 
 	entries := make([]atomEntry, len(posts))
+	var feedUpdated time.Time
 	for i, p := range posts {
 		summary := ""
 		if p.Excerpt != nil {
 			summary = *p.Excerpt
 		}
-		updated := time.Now().Format(time.RFC3339)
+		updated := ""
 		if p.PublishedAt != nil {
 			updated = p.PublishedAt.Format(time.RFC3339)
+			if feedUpdated.IsZero() || p.PublishedAt.After(feedUpdated) {
+				feedUpdated = *p.PublishedAt
+			}
 		}
 		entries[i] = atomEntry{
 			Title:   p.Title,
@@ -178,21 +201,35 @@ func (h *BlogHandler) AtomFeed(c *fiber.Ctx) error {
 		}
 	}
 
-	now := time.Now().Format(time.RFC3339)
+	feedUpdatedStr := time.Now().Format(time.RFC3339)
+	if !feedUpdated.IsZero() {
+		feedUpdatedStr = feedUpdated.Format(time.RFC3339)
+	}
+
 	feed := atomFeed{
 		XMLName: xml.Name{Local: "feed"},
 		Xmlns:   "http://www.w3.org/2005/Atom",
 		Title:   "Blog",
 		ID:      h.cfg.FrontendURL + "/blog",
-		Updated: now,
+		Updated: feedUpdatedStr,
 		Link: atomLink{
-			Href: h.cfg.FrontendURL + "/blog",
+			Href: h.cfg.FrontendURL + "/blog/atom.xml",
+			Rel:  "self",
+			Type: "application/atom+xml",
+		},
+		Author: atomAuthor{
+			Name: "Blog Author",
 		},
 		Entries: entries,
 	}
 
+	xmlStr, err := feedToXML(feed)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
 	c.Set("Content-Type", "application/atom+xml; charset=utf-8")
-	return c.SendString(xml.Header + feedToXML(feed))
+	return c.SendString(xml.Header + xmlStr)
 }
 
 // ---- Admin routes ----
@@ -471,12 +508,12 @@ func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 	return c.JSON(generated)
 }
 
-func feedToXML(feed interface{}) string {
+func feedToXML(feed interface{}) (string, error) {
 	b, err := xml.MarshalIndent(feed, "", "  ")
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return string(b)
+	return string(b), nil
 }
 
 func applyPublishedState(post *domain.BlogPost) {

@@ -1,7 +1,9 @@
 package handlers_test
 
 import (
+	"context"
 	"encoding/xml"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -52,9 +54,11 @@ func TestRSSFeed_Empty(t *testing.T) {
 		t.Fatalf("expected application/rss+xml, got %s", ct)
 	}
 
-	body := make([]byte, 10000)
-	n, _ := resp.Body.Read(body)
-	xmlStr := string(body[:n])
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read body: %v", err)
+	}
+	xmlStr := string(data)
 
 	if !contains(xmlStr, "<rss") {
 		t.Fatal("RSS feed missing <rss> tag")
@@ -72,7 +76,7 @@ func TestRSSFeed_WithPosts(t *testing.T) {
 
 	pubTime := time.Now()
 	excerpt := "This is a test excerpt"
-	blogRepo.Create(nil, &domain.BlogPost{
+	err := blogRepo.Create(context.Background(), &domain.BlogPost{
 		ID:          "post-1",
 		Title:       "Test Post 1",
 		Slug:        "test-post-1",
@@ -81,6 +85,9 @@ func TestRSSFeed_WithPosts(t *testing.T) {
 		PublishedAt: &pubTime,
 		CreatedAt:   time.Now(),
 	})
+	if err != nil {
+		t.Fatalf("failed to create blog post: %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/blog/rss.xml", nil)
 	resp, err := app.Test(req)
@@ -93,9 +100,11 @@ func TestRSSFeed_WithPosts(t *testing.T) {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
 
-	body := make([]byte, 10000)
-	n, _ := resp.Body.Read(body)
-	xmlStr := string(body[:n])
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read body: %v", err)
+	}
+	xmlStr := string(data)
 
 	if !contains(xmlStr, "Test Post 1") {
 		t.Fatal("RSS feed missing post title")
@@ -129,9 +138,11 @@ func TestAtomFeed_Empty(t *testing.T) {
 		t.Fatalf("expected application/atom+xml, got %s", ct)
 	}
 
-	body := make([]byte, 10000)
-	n, _ := resp.Body.Read(body)
-	xmlStr := string(body[:n])
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read body: %v", err)
+	}
+	xmlStr := string(data)
 
 	if !contains(xmlStr, "<feed") {
 		t.Fatal("Atom feed missing <feed> tag")
@@ -146,7 +157,7 @@ func TestAtomFeed_WithPosts(t *testing.T) {
 
 	pubTime := time.Now()
 	excerpt := "This is a test excerpt"
-	blogRepo.Create(nil, &domain.BlogPost{
+	err := blogRepo.Create(context.Background(), &domain.BlogPost{
 		ID:          "post-1",
 		Title:       "Test Post 1",
 		Slug:        "test-post-1",
@@ -155,6 +166,9 @@ func TestAtomFeed_WithPosts(t *testing.T) {
 		PublishedAt: &pubTime,
 		CreatedAt:   time.Now(),
 	})
+	if err != nil {
+		t.Fatalf("failed to create blog post: %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/blog/atom.xml", nil)
 	resp, err := app.Test(req)
@@ -167,9 +181,11 @@ func TestAtomFeed_WithPosts(t *testing.T) {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
 
-	body := make([]byte, 10000)
-	n, _ := resp.Body.Read(body)
-	xmlStr := string(body[:n])
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read body: %v", err)
+	}
+	xmlStr := string(data)
 
 	if !contains(xmlStr, "Test Post 1") {
 		t.Fatal("Atom feed missing post title")
@@ -190,7 +206,7 @@ func TestFeed_ValidXML(t *testing.T) {
 
 	pubTime := time.Now()
 	excerpt := "Test excerpt"
-	blogRepo.Create(nil, &domain.BlogPost{
+	err := blogRepo.Create(context.Background(), &domain.BlogPost{
 		ID:          "post-1",
 		Title:       "Test Post",
 		Slug:        "test-post",
@@ -199,27 +215,34 @@ func TestFeed_ValidXML(t *testing.T) {
 		PublishedAt: &pubTime,
 		CreatedAt:   time.Now(),
 	})
+	if err != nil {
+		t.Fatalf("failed to create blog post: %v", err)
+	}
 
 	// Test RSS XML validity
 	req := httptest.NewRequest(http.MethodGet, "/blog/rss.xml", nil)
 	resp, _ := app.Test(req)
-	body := make([]byte, 10000)
-	n, _ := resp.Body.Read(body)
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read body: %v", err)
+	}
 	resp.Body.Close()
 
 	var rss interface{}
-	if err := xml.Unmarshal(body[:n], &rss); err != nil {
+	if err := xml.Unmarshal(data, &rss); err != nil {
 		t.Fatalf("RSS feed is not valid XML: %v", err)
 	}
 
 	// Test Atom XML validity
 	req = httptest.NewRequest(http.MethodGet, "/blog/atom.xml", nil)
 	resp, _ = app.Test(req)
-	body = make([]byte, 10000)
-	n, _ = resp.Body.Read(body)
+	data, err = io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read body: %v", err)
+	}
 	resp.Body.Close()
 
-	if err := xml.Unmarshal(body[:n], &rss); err != nil {
+	if err := xml.Unmarshal(data, &rss); err != nil {
 		t.Fatalf("Atom feed is not valid XML: %v", err)
 	}
 }
@@ -229,7 +252,7 @@ func TestFeed_OnlyPublishedPosts(t *testing.T) {
 
 	pubTime := time.Now()
 	excerpt := "Published"
-	blogRepo.Create(nil, &domain.BlogPost{
+	err := blogRepo.Create(context.Background(), &domain.BlogPost{
 		ID:          "post-1",
 		Title:       "Published Post",
 		Slug:        "published-post",
@@ -238,9 +261,12 @@ func TestFeed_OnlyPublishedPosts(t *testing.T) {
 		PublishedAt: &pubTime,
 		CreatedAt:   time.Now(),
 	})
+	if err != nil {
+		t.Fatalf("failed to create blog post: %v", err)
+	}
 
 	draftExcerpt := "Draft"
-	blogRepo.Create(nil, &domain.BlogPost{
+	err = blogRepo.Create(context.Background(), &domain.BlogPost{
 		ID:       "post-2",
 		Title:    "Draft Post",
 		Slug:     "draft-post",
@@ -248,13 +274,18 @@ func TestFeed_OnlyPublishedPosts(t *testing.T) {
 		Status:   "draft",
 		CreatedAt: time.Now(),
 	})
+	if err != nil {
+		t.Fatalf("failed to create blog post: %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/blog/rss.xml", nil)
 	resp, _ := app.Test(req)
-	body := make([]byte, 10000)
-	n, _ := resp.Body.Read(body)
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read body: %v", err)
+	}
 	resp.Body.Close()
-	xmlStr := string(body[:n])
+	xmlStr := string(data)
 
 	if !contains(xmlStr, "Published Post") {
 		t.Fatal("Published post missing from feed")
