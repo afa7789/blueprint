@@ -226,7 +226,7 @@ func TestFeed_ValidXML(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read body: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	var rss interface{}
 	if err := xml.Unmarshal(data, &rss); err != nil {
@@ -240,7 +240,7 @@ func TestFeed_ValidXML(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read body: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if err := xml.Unmarshal(data, &rss); err != nil {
 		t.Fatalf("Atom feed is not valid XML: %v", err)
@@ -267,11 +267,11 @@ func TestFeed_OnlyPublishedPosts(t *testing.T) {
 
 	draftExcerpt := "Draft"
 	err = blogRepo.Create(context.Background(), &domain.BlogPost{
-		ID:       "post-2",
-		Title:    "Draft Post",
-		Slug:     "draft-post",
-		Excerpt:  &draftExcerpt,
-		Status:   "draft",
+		ID:        "post-2",
+		Title:     "Draft Post",
+		Slug:      "draft-post",
+		Excerpt:   &draftExcerpt,
+		Status:    "draft",
 		CreatedAt: time.Now(),
 	})
 	if err != nil {
@@ -284,7 +284,7 @@ func TestFeed_OnlyPublishedPosts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read body: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	xmlStr := string(data)
 
 	if !contains(xmlStr, "Published Post") {
