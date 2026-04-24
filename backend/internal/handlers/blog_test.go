@@ -26,7 +26,7 @@ func setupBlogApp() (*fiber.App, *testutil.MockBlogRepo) {
 		FrontendURL: "http://localhost:3000",
 	}
 
-	h := handlers.NewBlogHandler(blogRepo, cfg)
+	h := handlers.NewBlogHandler(blogRepo, cfg, nil)
 
 	app.Get("/blog", h.ListPublished)
 	app.Get("/blog/rss.xml", h.RSSFeed)

@@ -17,6 +17,7 @@ import (
 
 	"github.com/afa/blueprint/backend/internal/handlers"
 	"github.com/afa/blueprint/backend/internal/infrastructure"
+	"github.com/afa/blueprint/backend/internal/infrastructure/storage"
 	"github.com/afa/blueprint/backend/migrations"
 	"github.com/afa/blueprint/backend/pkg/config"
 	"github.com/afa/blueprint/backend/pkg/database"
@@ -113,6 +114,13 @@ func main() {
 		return c.JSON(result)
 	})
 
+	// Storage backend (local or s3)
+	storageBackend, err := storage.NewFromConfig(c.Background(), cfg)
+	if err != nil {
+		log.Fatalf("Storage init failed: %v", err)
+	}
+	log.Printf("Storage backend: %s", cfg.StorageBackend)
+
 	// Repositories
 	userRepo := infrastructure.NewUserRepo(pool)
 	flagRepo := infrastructure.NewFeatureFlagRepo(pool)
@@ -158,9 +166,9 @@ func main() {
 	adminHandler := handlers.NewAdminHandler(userRepo, bannerRepo, linktreeRepo, brandKitRepo, emailGroupRepo, emailSubRepo, userGroupRepo, cfg)
 	storeHandler := handlers.NewStoreHandler(productRepo, categoryRepo, orderRepo, couponRepo, cfg)
 	couponHandler := handlers.NewCouponHandler(couponRepo)
-	paymentHandler := handlers.NewPaymentHandler(orderRepo, pixConfigRepo, cfg)
+	paymentHandler := handlers.NewPaymentHandler(orderRepo, pixConfigRepo, cfg, storageBackend)
 	blogRepo := infrastructure.NewBlogRepo(pool)
-	blogHandler := handlers.NewBlogHandler(blogRepo, cfg)
+	blogHandler := handlers.NewBlogHandler(blogRepo, cfg, storageBackend)
 	cronJobRepo := infrastructure.NewCronJobRepo(pool)
 	jobExecRepo := infrastructure.NewJobExecutionRepo(pool)
 	toolRepo := infrastructure.NewAdminToolRepo(pool)
@@ -397,8 +405,17 @@ func main() {
 	admin.Get("/config/export", envConfigHandler.ExportEnv)
 	admin.Post("/config/import", envConfigHandler.ImportEnv)
 
-	// Static file serving
-	app.Static("/static", cfg.UploadDir)
+	// Static file serving (only meaningful when STORAGE_BACKEND=local —
+	// for S3 the URLs returned are presigned and served by S3 directly).
+	staticRoot := cfg.StorageLocalPath
+	if staticRoot == "" {
+		staticRoot = cfg.UploadDir
+	}
+	staticMount := cfg.StorageURLPrefix
+	if staticMount == "" {
+		staticMount = "/static"
+	}
+	app.Static(staticMount, staticRoot)
 
 	log.Printf("Server starting on :%s", cfg.Port)
 	if err := app.Listen(":" + cfg.Port); err != nil {

@@ -13,13 +13,14 @@ import (
 )
 
 type PaymentHandler struct {
-	orders domain.OrderRepository
-	pixCfg domain.PixConfigRepository
-	cfg    *config.Config
+	orders  domain.OrderRepository
+	pixCfg  domain.PixConfigRepository
+	cfg     *config.Config
+	storage domain.Storage
 }
 
-func NewPaymentHandler(orders domain.OrderRepository, pixCfg domain.PixConfigRepository, cfg *config.Config) *PaymentHandler {
-	return &PaymentHandler{orders: orders, pixCfg: pixCfg, cfg: cfg}
+func NewPaymentHandler(orders domain.OrderRepository, pixCfg domain.PixConfigRepository, cfg *config.Config, storage domain.Storage) *PaymentHandler {
+	return &PaymentHandler{orders: orders, pixCfg: pixCfg, cfg: cfg, storage: storage}
 }
 
 type createPaymentRequest struct {
@@ -181,7 +182,7 @@ func (h *PaymentHandler) UploadPixReceipt(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "receipt file is required")
 	}
 
-	url, err := UploadFile(file, "receipts", h.cfg)
+	url, err := UploadFormFile(c.Context(), h.storage, file, "receipts")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
 	}

@@ -19,8 +19,9 @@ var nonAlphanumHyphen = regexp.MustCompile(`[^a-z0-9-]`)
 var multipleHyphens = regexp.MustCompile(`-+`)
 
 type BlogHandler struct {
-	blog domain.BlogRepository
-	cfg  *config.Config
+	blog    domain.BlogRepository
+	cfg     *config.Config
+	storage domain.Storage
 }
 
 type blogAIResponse struct {
@@ -88,8 +89,8 @@ type atomFeed struct {
 	Entries []atomEntry `xml:"entry"`
 }
 
-func NewBlogHandler(blog domain.BlogRepository, cfg *config.Config) *BlogHandler {
-	return &BlogHandler{blog: blog, cfg: cfg}
+func NewBlogHandler(blog domain.BlogRepository, cfg *config.Config, storage domain.Storage) *BlogHandler {
+	return &BlogHandler{blog: blog, cfg: cfg, storage: storage}
 }
 
 func slugify(s string) string {
@@ -353,7 +354,7 @@ func (h *BlogHandler) AdminUploadCover(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "cover file is required")
 	}
 
-	url, err := UploadFile(file, "covers", h.cfg)
+	url, err := UploadFormFile(c.Context(), h.storage, file, "covers")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
