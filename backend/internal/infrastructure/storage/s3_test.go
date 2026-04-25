@@ -89,15 +89,6 @@ func TestS3_Upload_RejectsInvalidKeyBeforeReadingBody(t *testing.T) {
 	rc := &recordingClient{}
 	s := storage.NewS3StorageWithClient("bucket", rc, fakePresigner{}, 0)
 
-	// A reader that records whether it was read from.
-	type touchedReader struct {
-		read bool
-	}
-	tr := &touchedReader{}
-	body := bytes.NewReader([]byte("payload"))
-	_ = body
-	_ = tr
-
 	_, err := s.Upload(context.Background(), "../escape", bytes.NewReader([]byte("x")), "")
 	if !errors.Is(err, domain.ErrInvalidInput) {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
