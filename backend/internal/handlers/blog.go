@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -356,7 +357,8 @@ func (h *BlogHandler) AdminUploadCover(c *fiber.Ctx) error {
 
 	url, err := UploadFormFile(c.Context(), h.storage, file, "covers")
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("blog.AdminUploadCover: upload failed (post=%s, file=%s): %v", id, file.Filename, err)
+		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
 	}
 
 	post.CoverImage = &url

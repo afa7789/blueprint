@@ -65,7 +65,23 @@ func (l *LocalStorage) resolve(key string) (string, error) {
 	if err := validateKey(key); err != nil {
 		return "", err
 	}
-	return filepath.Join(l.root, filepath.FromSlash(key)), nil
+	dst := filepath.Join(l.root, filepath.FromSlash(key))
+	// Defense in depth: resolve absolute paths and verify dst is contained
+	// inside root. Catches escapes that survive textual key validation
+	// (e.g., symlinks under root pointing outside).
+	absRoot, err := filepath.Abs(l.root)
+	if err != nil {
+		return "", fmt.Errorf("storage: abs root: %w", err)
+	}
+	absDst, err := filepath.Abs(dst)
+	if err != nil {
+		return "", fmt.Errorf("storage: abs dst: %w", err)
+	}
+	rel, err := filepath.Rel(absRoot, absDst)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("storage: key escapes root %q: %w", key, domain.ErrInvalidInput)
+	}
+	return dst, nil
 }
 
 func (l *LocalStorage) publicURL(key string) string {

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/afa/blueprint/backend/internal/domain"
 	"github.com/afa/blueprint/backend/pkg/config"
@@ -184,7 +185,8 @@ func (h *PaymentHandler) UploadPixReceipt(c *fiber.Ctx) error {
 
 	url, err := UploadFormFile(c.Context(), h.storage, file, "receipts")
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprintf("upload failed: %v", err))
+		log.Printf("payment.UploadPixReceipt: upload failed (order=%s, file=%s): %v", orderID, file.Filename, err)
+		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
 	}
 
 	if err := h.orders.UpdateReceiptURL(c.Context(), orderID, url); err != nil {

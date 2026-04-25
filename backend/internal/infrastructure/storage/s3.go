@@ -101,8 +101,19 @@ func NewS3Storage(ctx context.Context, cfg S3Config) (*S3Storage, error) {
 	}, nil
 }
 
-// NewS3StorageWithClient is the test-friendly constructor.
+// NewS3StorageWithClient is the test-friendly constructor. It panics on
+// invalid input so misuse fails at construction rather than later in
+// Upload/SignedURL with a less obvious nil-pointer.
 func NewS3StorageWithClient(bucket string, client S3Client, presigner S3Presigner, ttl time.Duration) *S3Storage {
+	if bucket == "" {
+		panic("storage.NewS3StorageWithClient: bucket is required")
+	}
+	if client == nil {
+		panic("storage.NewS3StorageWithClient: client is required")
+	}
+	if presigner == nil {
+		panic("storage.NewS3StorageWithClient: presigner is required")
+	}
 	if ttl <= 0 {
 		ttl = defaultPresignTTL
 	}
