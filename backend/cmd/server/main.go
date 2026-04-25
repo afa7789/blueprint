@@ -115,11 +115,16 @@ func main() {
 	})
 
 	// Storage backend (local or s3)
+	resolvedBackend := cfg.StorageBackend
+	if resolvedBackend == "" {
+		resolvedBackend = "local"
+	}
 	storageBackend, err := storage.NewFromConfig(c.Background(), cfg)
 	if err != nil {
+		pool.Close()
 		log.Fatalf("Storage init failed: %v", err)
 	}
-	log.Printf("Storage backend: %s", cfg.StorageBackend)
+	log.Printf("Storage backend: %s", resolvedBackend)
 
 	// Repositories
 	userRepo := infrastructure.NewUserRepo(pool)
@@ -405,17 +410,22 @@ func main() {
 	admin.Get("/config/export", envConfigHandler.ExportEnv)
 	admin.Post("/config/import", envConfigHandler.ImportEnv)
 
-	// Static file serving (only meaningful when STORAGE_BACKEND=local —
-	// for S3 the URLs returned are presigned and served by S3 directly).
-	staticRoot := cfg.StorageLocalPath
-	if staticRoot == "" {
-		staticRoot = cfg.UploadDir
+	// Static file serving — only registered when running on the local
+	// backend. For S3, file URLs are presigned and served by S3 directly,
+	// so exposing the local upload dir would only leak local artifacts.
+	if resolvedBackend == "local" {
+		staticRoot := cfg.StorageLocalPath
+		if staticRoot == "" {
+			staticRoot = cfg.UploadDir
+		}
+		staticMount := cfg.StorageURLPrefix
+		if staticMount == "" {
+			staticMount = "/static"
+		}
+		app.Static(staticMount, staticRoot)
+	} else {
+		log.Printf("Static file serving disabled (backend=%s)", resolvedBackend)
 	}
-	staticMount := cfg.StorageURLPrefix
-	if staticMount == "" {
-		staticMount = "/static"
-	}
-	app.Static(staticMount, staticRoot)
 
 	log.Printf("Server starting on :%s", cfg.Port)
 	if err := app.Listen(":" + cfg.Port); err != nil {

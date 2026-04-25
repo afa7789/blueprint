@@ -25,7 +25,7 @@ func NewFromConfig(ctx context.Context, cfg *config.Config) (domain.Storage, err
 	switch backend {
 	case "s3":
 		if cfg.StorageS3Bucket == "" {
-			return nil, fmt.Errorf("storage: STORAGE_BACKEND=s3 but STORAGE_S3_BUCKET is empty")
+			return nil, fmt.Errorf("storage: STORAGE_BACKEND=s3 but STORAGE_S3_BUCKET is empty: %w", domain.ErrInvalidInput)
 		}
 		return NewS3Storage(ctx, S3Config{
 			Bucket:          cfg.StorageS3Bucket,

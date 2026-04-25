@@ -108,7 +108,7 @@ func NewS3StorageWithClient(bucket string, client S3Client, presigner S3Presigne
 	return &S3Storage{bucket: bucket, client: client, presigner: presigner, ttl: ttl}
 }
 
-func (s *S3Storage) Bucket() string { return s.bucket }
+func (s *S3Storage) Bucket() string   { return s.bucket }
 func (s *S3Storage) Client() S3Client { return s.client }
 
 // Upload PUTs body under key and returns a presigned GET URL valid
