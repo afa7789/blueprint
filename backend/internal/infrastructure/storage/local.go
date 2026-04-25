@@ -101,6 +101,14 @@ func (l *LocalStorage) Upload(ctx context.Context, key string, r io.Reader, _ st
 		cleanup()
 		return "", fmt.Errorf("storage: fsync: %w", err)
 	}
+	// os.CreateTemp creates with mode 0o600 (only owner readable).
+	// Static file servers running under a different user need 0o644
+	// to actually serve the bytes.
+	if err := tmp.Chmod(0o644); err != nil {
+		_ = tmp.Close()
+		cleanup()
+		return "", fmt.Errorf("storage: chmod: %w", err)
+	}
 	if err := tmp.Close(); err != nil {
 		cleanup()
 		return "", fmt.Errorf("storage: close tmp: %w", err)

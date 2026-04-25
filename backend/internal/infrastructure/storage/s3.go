@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -124,7 +125,7 @@ func (s *S3Storage) Upload(ctx context.Context, key string, r io.Reader, content
 	input := &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
-		Body:   bytesReadSeeker(body),
+		Body:   bytes.NewReader(body),
 	}
 	if contentType != "" {
 		input.ContentType = aws.String(contentType)
@@ -189,7 +190,10 @@ func (s *S3Storage) SignedURL(ctx context.Context, key string, ttl time.Duration
 	return req.URL, nil
 }
 
-// Delete removes key from the bucket. S3 DeleteObject is idempotent.
+// Delete removes key from the bucket. S3-compatible backends vary in how
+// they treat missing keys: AWS S3 returns success, but R2 and MinIO have
+// historically returned NoSuchKey. Map those to nil so Delete is
+// idempotent across providers.
 func (s *S3Storage) Delete(ctx context.Context, key string) error {
 	if err := validateKey(key); err != nil {
 		return err
@@ -199,6 +203,9 @@ func (s *S3Storage) Delete(ctx context.Context, key string) error {
 		Key:    aws.String(key),
 	})
 	if err != nil {
+		if isS3NotFound(err) {
+			return nil
+		}
 		return fmt.Errorf("storage: s3 delete: %w", err)
 	}
 	return nil
@@ -233,41 +240,6 @@ func (a presignerAdapter) PresignGetObject(ctx context.Context, params *s3.GetOb
 		return nil, err
 	}
 	return &PresignedHTTPRequest{URL: req.URL}, nil
-}
-
-func bytesReadSeeker(b []byte) *byteReader { return &byteReader{b: b} }
-
-type byteReader struct {
-	b   []byte
-	pos int64
-}
-
-func (r *byteReader) Read(p []byte) (int, error) {
-	if r.pos >= int64(len(r.b)) {
-		return 0, io.EOF
-	}
-	n := copy(p, r.b[r.pos:])
-	r.pos += int64(n)
-	return n, nil
-}
-
-func (r *byteReader) Seek(offset int64, whence int) (int64, error) {
-	var abs int64
-	switch whence {
-	case io.SeekStart:
-		abs = offset
-	case io.SeekCurrent:
-		abs = r.pos + offset
-	case io.SeekEnd:
-		abs = int64(len(r.b)) + offset
-	default:
-		return 0, fmt.Errorf("byteReader: invalid whence %d", whence)
-	}
-	if abs < 0 {
-		return 0, fmt.Errorf("byteReader: negative position")
-	}
-	r.pos = abs
-	return abs, nil
 }
 
 var _ domain.Storage = (*S3Storage)(nil)

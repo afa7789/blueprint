@@ -96,7 +96,7 @@ func Load() *Config {
 		StorageS3AccessKeyID:     getEnv("STORAGE_S3_ACCESS_KEY_ID", getEnv("AWS_ACCESS_KEY_ID", "")),
 		StorageS3SecretAccessKey: getEnv("STORAGE_S3_SECRET_ACCESS_KEY", getEnv("AWS_SECRET_ACCESS_KEY", "")),
 		StorageS3Endpoint:        getEnv("STORAGE_S3_ENDPOINT", ""),
-		StorageS3UsePathStyle:    getEnv("STORAGE_S3_USE_PATH_STYLE", "false") == "true",
+		StorageS3UsePathStyle:    getEnvBool("STORAGE_S3_USE_PATH_STYLE", false),
 
 		OpenAIKey: getEnv("OPENAI_KEY", ""),
 
@@ -133,6 +133,18 @@ func getEnv(key, defaultValue string) string {
 func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if v, err := strconv.Atoi(value); err == nil {
+			return v
+		}
+	}
+	return defaultValue
+}
+
+// getEnvBool parses common truthy/falsy strings (1, t, true, yes, on,
+// case-insensitive) via strconv.ParseBool. Falls back to defaultValue on
+// missing or unparseable input.
+func getEnvBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if v, err := strconv.ParseBool(value); err == nil {
 			return v
 		}
 	}

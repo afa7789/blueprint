@@ -2,16 +2,35 @@ package storage_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/afa/blueprint/backend/internal/infrastructure/storage"
 )
+
+// isolateAWSEnv disables AWS shared config / IMDS lookups so
+// LoadDefaultConfig does not hit the network or read host AWS profiles
+// when running under CI.
+func isolateAWSEnv(t *testing.T) {
+	t.Helper()
+	for _, k := range []string{
+		"AWS_PROFILE",
+		"AWS_CONFIG_FILE",
+		"AWS_SHARED_CREDENTIALS_FILE",
+	} {
+		t.Setenv(k, "")
+	}
+	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	// Suppress noisy "config file not found" messages.
+	_ = os.Setenv("AWS_SDK_LOAD_CONFIG", "0")
+}
 
 // TestNewS3Storage_CustomEndpoint verifies that custom endpoints
 // (R2, MinIO, B2, etc.) are accepted by the constructor and do not
 // fail boot. Does not validate live connectivity — that requires
 // real credentials and a reachable service.
 func TestNewS3Storage_CustomEndpoint(t *testing.T) {
+	isolateAWSEnv(t)
 	ctx := context.Background()
 
 	// MinIO-style: path-style endpoint local
@@ -72,6 +91,7 @@ func TestNewS3Storage_CustomEndpoint(t *testing.T) {
 
 // TestNewS3Storage_MissingBucket guarantees fail-fast.
 func TestNewS3Storage_MissingBucket(t *testing.T) {
+	isolateAWSEnv(t)
 	_, err := storage.NewS3Storage(context.Background(), storage.S3Config{
 		Region:   "us-east-1",
 		Endpoint: "http://localhost:9000",

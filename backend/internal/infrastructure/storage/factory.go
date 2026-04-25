@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/afa/blueprint/backend/internal/domain"
 	"github.com/afa/blueprint/backend/pkg/config"
@@ -18,7 +19,7 @@ import (
 // returns an error rather than silently falling back — fail-loud is
 // preferred to writing files to disk when the operator asked for S3.
 func NewFromConfig(ctx context.Context, cfg *config.Config) (domain.Storage, error) {
-	backend := cfg.StorageBackend
+	backend := strings.ToLower(strings.TrimSpace(cfg.StorageBackend))
 	if backend == "" {
 		backend = "local"
 	}

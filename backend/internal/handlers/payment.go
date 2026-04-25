@@ -184,7 +184,7 @@ func (h *PaymentHandler) UploadPixReceipt(c *fiber.Ctx) error {
 
 	url, err := UploadFormFile(c.Context(), h.storage, file, "receipts")
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
+		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprintf("upload failed: %v", err))
 	}
 
 	if err := h.orders.UpdateReceiptURL(c.Context(), orderID, url); err != nil {
