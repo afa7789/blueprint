@@ -121,8 +121,8 @@ func main() {
 	}
 	storageBackend, err := storage.NewFromConfig(c.Background(), cfg)
 	if err != nil {
-		pool.Close()
-		log.Fatalf("Storage init failed: %v", err)
+		log.Printf("Storage init failed: %v", err)
+		return
 	}
 	log.Printf("Storage backend: %s", resolvedBackend)
 
