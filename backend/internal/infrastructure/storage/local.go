@@ -1,0 +1,246 @@
+// Package storage provides concrete domain.Storage implementations for
+// persisting uploaded files. LocalStorage writes to a configurable
+// filesystem root; S3Storage writes to an S3-compatible bucket with
+// presigned GET URLs.
+package storage
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/afa/blueprint/backend/internal/domain"
+)
+
+// LocalStorage is a domain.Storage implementation that persists objects
+// under a filesystem root. Writes are atomic (write-to-tmp + rename)
+// and directory-traversal attempts are rejected. The URL returned from
+// Upload is a relative path "/static/{key}" — the server mounts a static
+// file handler at that mount point.
+type LocalStorage struct {
+	root      string
+	urlPrefix string
+}
+
+// NewLocalStorage constructs a LocalStorage rooted at the given path.
+// The directory is created (mkdir -p) on first use. urlPrefix is the
+// URL path prefix returned by Upload/SignedURL (e.g. "/static").
+func NewLocalStorage(root, urlPrefix string) *LocalStorage {
+	if urlPrefix == "" {
+		urlPrefix = "/static"
+	}
+	return &LocalStorage{root: root, urlPrefix: strings.TrimRight(urlPrefix, "/")}
+}
+
+// Root returns the filesystem root this LocalStorage writes to.
+func (l *LocalStorage) Root() string { return l.root }
+
+// validateKey rejects empty keys, absolute paths, and traversal attempts.
+func validateKey(key string) error {
+	if key == "" {
+		return fmt.Errorf("storage: empty key: %w", domain.ErrInvalidInput)
+	}
+	cleaned := filepath.ToSlash(filepath.Clean(key))
+	if cleaned == ".." || strings.HasPrefix(cleaned, "../") ||
+		strings.Contains(cleaned, "/../") || strings.HasSuffix(cleaned, "/..") {
+		return fmt.Errorf("storage: traversal key %q: %w", key, domain.ErrInvalidInput)
+	}
+	for _, seg := range strings.Split(strings.ReplaceAll(key, "\\", "/"), "/") {
+		if seg == ".." {
+			return fmt.Errorf("storage: traversal key %q: %w", key, domain.ErrInvalidInput)
+		}
+	}
+	if filepath.IsAbs(key) {
+		return fmt.Errorf("storage: absolute key %q: %w", key, domain.ErrInvalidInput)
+	}
+	return nil
+}
+
+func (l *LocalStorage) resolve(key string) (string, error) {
+	if err := validateKey(key); err != nil {
+		return "", err
+	}
+	return filepath.Join(l.root, filepath.FromSlash(key)), nil
+}
+
+// checkContains verifies that dst, after resolving any symlinks on its
+// existing components, is still inside l.root (also symlink-resolved).
+// dst itself need not exist — the check walks up to the first existing
+// ancestor and resolves there. Callers must invoke this AFTER any
+// MkdirAll for new uploads, so that the parent directory exists and is
+// resolved (otherwise a symlink planted at the parent slips through).
+func (l *LocalStorage) checkContains(dst string) error {
+	realRoot, err := filepath.EvalSymlinks(l.root)
+	if err != nil {
+		// Root absent on first write is normal; nothing to escape into.
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("storage: evalsymlinks root: %w", err)
+	}
+	if realRoot, err = filepath.Abs(realRoot); err != nil {
+		return fmt.Errorf("storage: abs root: %w", err)
+	}
+
+	// Walk dst upward to the first component that exists, then resolve.
+	target := dst
+	for {
+		real, err := filepath.EvalSymlinks(target)
+		if err == nil {
+			if real, err = filepath.Abs(real); err != nil {
+				return fmt.Errorf("storage: abs dst: %w", err)
+			}
+			rel, err := filepath.Rel(realRoot, real)
+			if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return fmt.Errorf("storage: key escapes root: %w", domain.ErrInvalidInput)
+			}
+			return nil
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("storage: evalsymlinks: %w", err)
+		}
+		parent := filepath.Dir(target)
+		if parent == target {
+			// reached filesystem root without finding anything that exists
+			return nil
+		}
+		target = parent
+	}
+}
+
+func (l *LocalStorage) publicURL(key string) string {
+	return l.urlPrefix + "/" + strings.TrimPrefix(filepath.ToSlash(key), "/")
+}
+
+// Upload writes the body to {root}/{key} via a write-to-tmp + rename
+// atomic swap. Parent directories are created on demand.
+func (l *LocalStorage) Upload(ctx context.Context, key string, r io.Reader, _ string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	dst, err := l.resolve(key)
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return "", fmt.Errorf("storage: mkdir: %w", err)
+	}
+	// Containment must run AFTER MkdirAll (so the parent dir exists and
+	// EvalSymlinks resolves it) and BEFORE CreateTemp (so we never write
+	// to a path that resolves outside root via a planted symlink).
+	if err := l.checkContains(dst); err != nil {
+		return "", err
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(dst), ".upload-*.tmp")
+	if err != nil {
+		return "", fmt.Errorf("storage: create tmp: %w", err)
+	}
+	tmpName := tmp.Name()
+	cleanup := func() { _ = os.Remove(tmpName) }
+	if _, err := io.Copy(tmp, r); err != nil {
+		_ = tmp.Close()
+		cleanup()
+		return "", fmt.Errorf("storage: copy body: %w", err)
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		cleanup()
+		return "", fmt.Errorf("storage: fsync: %w", err)
+	}
+	// os.CreateTemp creates with mode 0o600 (only owner readable).
+	// Static file servers running under a different user need 0o644
+	// to actually serve the bytes.
+	if err := tmp.Chmod(0o644); err != nil {
+		_ = tmp.Close()
+		cleanup()
+		return "", fmt.Errorf("storage: chmod: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		cleanup()
+		return "", fmt.Errorf("storage: close tmp: %w", err)
+	}
+	if err := os.Rename(tmpName, dst); err != nil {
+		cleanup()
+		return "", fmt.Errorf("storage: rename: %w", err)
+	}
+	return l.publicURL(key), nil
+}
+
+// Download opens {root}/{key} for reading. Returns domain.ErrNotFound
+// if the object is absent.
+func (l *LocalStorage) Download(ctx context.Context, key string) (io.ReadCloser, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	src, err := l.resolve(key)
+	if err != nil {
+		return nil, err
+	}
+	if err := l.checkContains(src); err != nil {
+		return nil, err
+	}
+	f, err := os.Open(src)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, domain.ErrNotFound
+		}
+		return nil, fmt.Errorf("storage: open: %w", err)
+	}
+	return f, nil
+}
+
+// Exists reports whether {root}/{key} is a regular file.
+func (l *LocalStorage) Exists(ctx context.Context, key string) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	p, err := l.resolve(key)
+	if err != nil {
+		return false, err
+	}
+	if err := l.checkContains(p); err != nil {
+		return false, err
+	}
+	st, err := os.Stat(p)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, fmt.Errorf("storage: stat: %w", err)
+	}
+	return st.Mode().IsRegular(), nil
+}
+
+// SignedURL returns the same public URL as Upload. Local storage has
+// no cryptographic signing — the TTL is advisory and ignored.
+func (l *LocalStorage) SignedURL(_ context.Context, key string, _ time.Duration) (string, error) {
+	if err := validateKey(key); err != nil {
+		return "", err
+	}
+	return l.publicURL(key), nil
+}
+
+// Delete removes {root}/{key}. Missing keys are not an error.
+func (l *LocalStorage) Delete(ctx context.Context, key string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	p, err := l.resolve(key)
+	if err != nil {
+		return err
+	}
+	if err := l.checkContains(p); err != nil {
+		return err
+	}
+	if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("storage: delete: %w", err)
+	}
+	return nil
+}
+
+var _ domain.Storage = (*LocalStorage)(nil)

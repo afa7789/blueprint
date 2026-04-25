@@ -17,6 +17,7 @@ import (
 
 	"github.com/afa/blueprint/backend/internal/handlers"
 	"github.com/afa/blueprint/backend/internal/infrastructure"
+	"github.com/afa/blueprint/backend/internal/infrastructure/storage"
 	"github.com/afa/blueprint/backend/migrations"
 	"github.com/afa/blueprint/backend/pkg/config"
 	"github.com/afa/blueprint/backend/pkg/database"
@@ -113,6 +114,18 @@ func main() {
 		return c.JSON(result)
 	})
 
+	// Storage backend (local or s3)
+	resolvedBackend := cfg.StorageBackend
+	if resolvedBackend == "" {
+		resolvedBackend = "local"
+	}
+	storageBackend, err := storage.NewFromConfig(c.Background(), cfg)
+	if err != nil {
+		log.Printf("Storage init failed: %v", err)
+		return
+	}
+	log.Printf("Storage backend: %s", resolvedBackend)
+
 	// Repositories
 	userRepo := infrastructure.NewUserRepo(pool)
 	flagRepo := infrastructure.NewFeatureFlagRepo(pool)
@@ -158,9 +171,9 @@ func main() {
 	adminHandler := handlers.NewAdminHandler(userRepo, bannerRepo, linktreeRepo, brandKitRepo, emailGroupRepo, emailSubRepo, userGroupRepo, cfg)
 	storeHandler := handlers.NewStoreHandler(productRepo, categoryRepo, orderRepo, couponRepo, cfg)
 	couponHandler := handlers.NewCouponHandler(couponRepo)
-	paymentHandler := handlers.NewPaymentHandler(orderRepo, pixConfigRepo, cfg)
+	paymentHandler := handlers.NewPaymentHandler(orderRepo, pixConfigRepo, cfg, storageBackend)
 	blogRepo := infrastructure.NewBlogRepo(pool)
-	blogHandler := handlers.NewBlogHandler(blogRepo, cfg)
+	blogHandler := handlers.NewBlogHandler(blogRepo, cfg, storageBackend)
 	cronJobRepo := infrastructure.NewCronJobRepo(pool)
 	jobExecRepo := infrastructure.NewJobExecutionRepo(pool)
 	toolRepo := infrastructure.NewAdminToolRepo(pool)
@@ -397,8 +410,22 @@ func main() {
 	admin.Get("/config/export", envConfigHandler.ExportEnv)
 	admin.Post("/config/import", envConfigHandler.ImportEnv)
 
-	// Static file serving
-	app.Static("/static", cfg.UploadDir)
+	// Static file serving — only registered when running on the local
+	// backend. For S3, file URLs are presigned and served by S3 directly,
+	// so exposing the local upload dir would only leak local artifacts.
+	if resolvedBackend == "local" {
+		staticRoot := cfg.StorageLocalPath
+		if staticRoot == "" {
+			staticRoot = cfg.UploadDir
+		}
+		staticMount := cfg.StorageURLPrefix
+		if staticMount == "" {
+			staticMount = "/static"
+		}
+		app.Static(staticMount, staticRoot)
+	} else {
+		log.Printf("Static file serving disabled (backend=%s)", resolvedBackend)
+	}
 
 	log.Printf("Server starting on :%s", cfg.Port)
 	if err := app.Listen(":" + cfg.Port); err != nil {

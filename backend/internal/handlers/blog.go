@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -19,8 +21,9 @@ var nonAlphanumHyphen = regexp.MustCompile(`[^a-z0-9-]`)
 var multipleHyphens = regexp.MustCompile(`-+`)
 
 type BlogHandler struct {
-	blog domain.BlogRepository
-	cfg  *config.Config
+	blog    domain.BlogRepository
+	cfg     *config.Config
+	storage domain.Storage
 }
 
 type blogAIResponse struct {
@@ -88,8 +91,8 @@ type atomFeed struct {
 	Entries []atomEntry `xml:"entry"`
 }
 
-func NewBlogHandler(blog domain.BlogRepository, cfg *config.Config) *BlogHandler {
-	return &BlogHandler{blog: blog, cfg: cfg}
+func NewBlogHandler(blog domain.BlogRepository, cfg *config.Config, storage domain.Storage) *BlogHandler {
+	return &BlogHandler{blog: blog, cfg: cfg, storage: storage}
 }
 
 func slugify(s string) string {
@@ -353,9 +356,13 @@ func (h *BlogHandler) AdminUploadCover(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "cover file is required")
 	}
 
-	url, err := UploadFile(file, "covers", h.cfg)
+	url, err := UploadFormFile(c.Context(), h.storage, file, "covers")
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		if errors.Is(err, domain.ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "invalid upload")
+		}
+		log.Printf("blog.AdminUploadCover: upload failed (post=%s, file=%s): %v", id, file.Filename, err)
+		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
 	}
 
 	post.CoverImage = &url
