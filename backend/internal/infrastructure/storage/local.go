@@ -65,23 +65,52 @@ func (l *LocalStorage) resolve(key string) (string, error) {
 	if err := validateKey(key); err != nil {
 		return "", err
 	}
-	dst := filepath.Join(l.root, filepath.FromSlash(key))
-	// Defense in depth: resolve absolute paths and verify dst is contained
-	// inside root. Catches escapes that survive textual key validation
-	// (e.g., symlinks under root pointing outside).
-	absRoot, err := filepath.Abs(l.root)
+	return filepath.Join(l.root, filepath.FromSlash(key)), nil
+}
+
+// checkContains verifies that dst, after resolving any symlinks on its
+// existing components, is still inside l.root (also symlink-resolved).
+// dst itself need not exist — the check walks up to the first existing
+// ancestor and resolves there. Callers must invoke this AFTER any
+// MkdirAll for new uploads, so that the parent directory exists and is
+// resolved (otherwise a symlink planted at the parent slips through).
+func (l *LocalStorage) checkContains(dst string) error {
+	realRoot, err := filepath.EvalSymlinks(l.root)
 	if err != nil {
-		return "", fmt.Errorf("storage: abs root: %w", err)
+		// Root absent on first write is normal; nothing to escape into.
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("storage: evalsymlinks root: %w", err)
 	}
-	absDst, err := filepath.Abs(dst)
-	if err != nil {
-		return "", fmt.Errorf("storage: abs dst: %w", err)
+	if realRoot, err = filepath.Abs(realRoot); err != nil {
+		return fmt.Errorf("storage: abs root: %w", err)
 	}
-	rel, err := filepath.Rel(absRoot, absDst)
-	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return "", fmt.Errorf("storage: key escapes root %q: %w", key, domain.ErrInvalidInput)
+
+	// Walk dst upward to the first component that exists, then resolve.
+	target := dst
+	for {
+		real, err := filepath.EvalSymlinks(target)
+		if err == nil {
+			if real, err = filepath.Abs(real); err != nil {
+				return fmt.Errorf("storage: abs dst: %w", err)
+			}
+			rel, err := filepath.Rel(realRoot, real)
+			if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return fmt.Errorf("storage: key escapes root: %w", domain.ErrInvalidInput)
+			}
+			return nil
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("storage: evalsymlinks: %w", err)
+		}
+		parent := filepath.Dir(target)
+		if parent == target {
+			// reached filesystem root without finding anything that exists
+			return nil
+		}
+		target = parent
 	}
-	return dst, nil
 }
 
 func (l *LocalStorage) publicURL(key string) string {
@@ -100,6 +129,12 @@ func (l *LocalStorage) Upload(ctx context.Context, key string, r io.Reader, _ st
 	}
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return "", fmt.Errorf("storage: mkdir: %w", err)
+	}
+	// Containment must run AFTER MkdirAll (so the parent dir exists and
+	// EvalSymlinks resolves it) and BEFORE CreateTemp (so we never write
+	// to a path that resolves outside root via a planted symlink).
+	if err := l.checkContains(dst); err != nil {
+		return "", err
 	}
 	tmp, err := os.CreateTemp(filepath.Dir(dst), ".upload-*.tmp")
 	if err != nil {
@@ -146,6 +181,9 @@ func (l *LocalStorage) Download(ctx context.Context, key string) (io.ReadCloser,
 	if err != nil {
 		return nil, err
 	}
+	if err := l.checkContains(src); err != nil {
+		return nil, err
+	}
 	f, err := os.Open(src)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -163,6 +201,9 @@ func (l *LocalStorage) Exists(ctx context.Context, key string) (bool, error) {
 	}
 	p, err := l.resolve(key)
 	if err != nil {
+		return false, err
+	}
+	if err := l.checkContains(p); err != nil {
 		return false, err
 	}
 	st, err := os.Stat(p)
@@ -191,6 +232,9 @@ func (l *LocalStorage) Delete(ctx context.Context, key string) error {
 	}
 	p, err := l.resolve(key)
 	if err != nil {
+		return err
+	}
+	if err := l.checkContains(p); err != nil {
 		return err
 	}
 	if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {

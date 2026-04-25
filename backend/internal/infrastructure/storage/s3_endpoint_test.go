@@ -2,7 +2,6 @@ package storage_test
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/afa/blueprint/backend/internal/infrastructure/storage"
@@ -21,8 +20,6 @@ func isolateAWSEnv(t *testing.T) {
 		t.Setenv(k, "")
 	}
 	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
-	// Suppress noisy "config file not found" messages.
-	_ = os.Setenv("AWS_SDK_LOAD_CONFIG", "0")
 }
 
 // TestNewS3Storage_CustomEndpoint verifies that custom endpoints

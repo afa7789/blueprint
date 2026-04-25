@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -357,6 +358,9 @@ func (h *BlogHandler) AdminUploadCover(c *fiber.Ctx) error {
 
 	url, err := UploadFormFile(c.Context(), h.storage, file, "covers")
 	if err != nil {
+		if errors.Is(err, domain.ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "invalid upload")
+		}
 		log.Printf("blog.AdminUploadCover: upload failed (post=%s, file=%s): %v", id, file.Filename, err)
 		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
 	}

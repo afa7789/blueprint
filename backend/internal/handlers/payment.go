@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -185,6 +186,9 @@ func (h *PaymentHandler) UploadPixReceipt(c *fiber.Ctx) error {
 
 	url, err := UploadFormFile(c.Context(), h.storage, file, "receipts")
 	if err != nil {
+		if errors.Is(err, domain.ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "invalid upload")
+		}
 		log.Printf("payment.UploadPixReceipt: upload failed (order=%s, file=%s): %v", orderID, file.Filename, err)
 		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
 	}
