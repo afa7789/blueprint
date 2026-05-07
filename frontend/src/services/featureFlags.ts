@@ -47,16 +47,8 @@ export function setFeatureFlagEnabled(key: string, enabled: boolean) {
   cached = true
 }
 
-export function invalidateFeatureFlags() {
-  cached = false
-}
-
 export function isFeatureEnabled(key: string): boolean {
   // Support both exact key and short name (e.g. "store" matches "store_enabled")
   const flag = featureFlags.value.find(f => f.key === key || f.key === key + '_enabled')
   return flag?.enabled ?? false
-}
-
-export function getFlags(): FeatureFlag[] {
-  return featureFlags.value
 }

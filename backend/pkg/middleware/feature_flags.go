@@ -46,19 +46,3 @@ func RequireFeature(repo domain.FeatureFlagRepository, key string) fiber.Handler
 		return c.Next()
 	}
 }
-
-func RequireAnyFeature(repo domain.FeatureFlagRepository, keys ...string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		for _, key := range keys {
-			enabled, err := IsFeatureEnabled(c.Context(), repo, key)
-			if err != nil {
-				return fiber.NewError(fiber.StatusInternalServerError, "failed to check feature flag")
-			}
-			if enabled {
-				return c.Next()
-			}
-		}
-
-		return fiber.NewError(fiber.StatusNotFound, "feature not available")
-	}
-}

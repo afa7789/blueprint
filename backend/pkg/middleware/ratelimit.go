@@ -64,14 +64,6 @@ func KeyByIP(c *fiber.Ctx) string {
 	return "ip:" + c.IP()
 }
 
-func KeyByUserID(c *fiber.Ctx) string {
-	uid, _ := c.Locals("user_id").(string)
-	if uid != "" {
-		return "uid:" + uid
-	}
-	return "ip:" + c.IP()
-}
-
 func KeyByEmail(c *fiber.Ctx) string {
 	// Parse email from request body for login/register
 	var body struct {
