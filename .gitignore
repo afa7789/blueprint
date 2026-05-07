@@ -1,4 +1,5 @@
-.dagrobin/db
+.dagrobin/
+.rtk/
 .env
 .env.local
 .env.production
