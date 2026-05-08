@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"net"
+	"net/http"
+	_ "net/http/pprof" // registers /debug/pprof/* on http.DefaultServeMux
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -424,6 +427,22 @@ func main() {
 		app.Static(staticMount, staticRoot)
 	} else {
 		log.Printf("Static file serving disabled (backend=%s)", resolvedBackend)
+	}
+
+	// pprof server (separate from the API). Bind to 127.0.0.1 by default;
+	// in containers set PPROF_BIND=0.0.0.0 and gate access at nginx.
+	if cfg.PprofEnabled {
+		addr := net.JoinHostPort(cfg.PprofBind, cfg.PprofPort)
+		go func() {
+			pprofSrv := &http.Server{
+				Addr:              addr,
+				ReadHeaderTimeout: 5 * time.Second,
+			}
+			log.Printf("pprof listening on %s (/debug/pprof/)", addr)
+			if err := pprofSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Printf("pprof server error: %v", err)
+			}
+		}()
 	}
 
 	log.Printf("Server starting on :%s", cfg.Port)

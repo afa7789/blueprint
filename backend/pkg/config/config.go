@@ -66,6 +66,11 @@ type Config struct {
 	// Security
 	MaxRequestBodyMB int // max request body in MB (default 10)
 	BcryptCost       int // bcrypt cost for password hashing (default 12)
+
+	// pprof — profiling endpoints (net/http/pprof)
+	PprofEnabled bool   // enable a separate pprof HTTP server (default false)
+	PprofBind    string // bind address (default "127.0.0.1"; use "0.0.0.0" in containers)
+	PprofPort    string // pprof port (default "6060")
 }
 
 func Load() *Config {
@@ -120,6 +125,10 @@ func Load() *Config {
 		EmailVerificationRequired: getEnv("EMAIL_VERIFICATION_REQUIRED", "false") == "true",
 		MaxRequestBodyMB:          getEnvInt("MAX_REQUEST_BODY_MB", 10),
 		BcryptCost:                getBcryptCost(),
+
+		PprofEnabled: getEnvBool("PPROF_ENABLED", false),
+		PprofBind:    getEnv("PPROF_BIND", "127.0.0.1"),
+		PprofPort:    getEnv("PPROF_PORT", "6060"),
 	}
 }
 
