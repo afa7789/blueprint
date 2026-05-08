@@ -429,6 +429,7 @@ func (h *BlogHandler) AdminUploadCover(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"cover_image": url})
 }
+
 // AdminAIGenerate godoc
 // @Summary     Generate blog post with AI (admin)
 // @Tags        Admin
