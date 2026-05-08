@@ -163,44 +163,6 @@ func (m *MockFeatureFlagRepo) Set(_ context.Context, key string, enabled bool) e
 	return nil
 }
 
-// ---- MockWaitlistRepo ----
-
-type MockWaitlistRepo struct {
-	mu      sync.RWMutex
-	entries []domain.WaitlistEntry
-}
-
-func NewMockWaitlistRepo() *MockWaitlistRepo {
-	return &MockWaitlistRepo{}
-}
-
-func (m *MockWaitlistRepo) Add(_ context.Context, entry *domain.WaitlistEntry) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	entry.CreatedAt = time.Now()
-	m.entries = append(m.entries, *entry)
-	return nil
-}
-
-func (m *MockWaitlistRepo) ExistsByEmail(_ context.Context, email string) (bool, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	for _, e := range m.entries {
-		if e.Email == email {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func (m *MockWaitlistRepo) List(_ context.Context) ([]domain.WaitlistEntry, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	result := make([]domain.WaitlistEntry, len(m.entries))
-	copy(result, m.entries)
-	return result, nil
-}
-
 // ---- MockProductRepo ----
 
 type MockProductRepo struct {

@@ -371,7 +371,6 @@ func (h *BlogHandler) AdminUploadCover(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"cover_image": url})
 }
-
 func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 	if h.cfg.OpenAIKey == "" {
 		return fiber.NewError(fiber.StatusServiceUnavailable, "OPENAI_KEY is not configured")

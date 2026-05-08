@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"errors"
+	"log"
 	"strconv"
 
 	"github.com/afa/blueprint/backend/internal/domain"
@@ -16,6 +18,7 @@ type AdminHandler struct {
 	emailGroups domain.EmailGroupRepository
 	emailSubs   domain.EmailSubscriptionRepository
 	userGroups  domain.UserGroupRepository
+	storage     domain.Storage
 	cfg         *config.Config
 }
 
@@ -27,6 +30,7 @@ func NewAdminHandler(
 	emailGroups domain.EmailGroupRepository,
 	emailSubs domain.EmailSubscriptionRepository,
 	userGroups domain.UserGroupRepository,
+	storage domain.Storage,
 	cfg *config.Config,
 ) *AdminHandler {
 	return &AdminHandler{
@@ -37,8 +41,42 @@ func NewAdminHandler(
 		emailGroups: emailGroups,
 		emailSubs:   emailSubs,
 		userGroups:  userGroups,
+		storage:     storage,
 		cfg:         cfg,
 	}
+}
+
+// Upload handles generic admin file uploads. The frontend sends a multipart
+// form with a `file` field and an optional `prefix` (subfolder) field. Only
+// a fixed allowlist of prefixes is accepted.
+func (h *AdminHandler) Upload(c *fiber.Ctx) error {
+	file, err := c.FormFile("file")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "file is required")
+	}
+
+	prefix := c.FormValue("prefix", "uploads")
+	allowed := map[string]bool{
+		"uploads":   true,
+		"covers":    true,
+		"banners":   true,
+		"linktree":  true,
+		"brand-kit": true,
+		"products":  true,
+	}
+	if !allowed[prefix] {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid prefix")
+	}
+
+	url, err := UploadFormFile(c.Context(), h.storage, file, prefix)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "invalid upload")
+		}
+		log.Printf("admin.Upload: upload failed (prefix=%s, file=%q): %v", prefix, file.Filename, err)
+		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
+	}
+	return c.JSON(fiber.Map{"url": url})
 }
 
 // pagination helpers

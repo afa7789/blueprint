@@ -3,6 +3,7 @@
 	lint lint-backend lint-frontend \
 	fmt fmt-backend fmt-frontend \
 	typecheck tidy vet \
+	deadcode deadcode-backend deadcode-frontend \
 	check ci clean help
 
 # === Local Development (tudo via Docker, 1 porta) ===
@@ -93,9 +94,11 @@ test-frontend:
 lint: lint-backend lint-frontend
 
 lint-backend:
-	@command -v golangci-lint >/dev/null 2>&1 || { \
-		echo "golangci-lint not found. Install: brew install golangci-lint"; exit 1; }
-	cd backend && golangci-lint run ./...
+	@GOLANGCI=$$(command -v golangci-lint || ls $$(go env GOPATH)/bin/golangci-lint 2>/dev/null); \
+	if [ -z "$$GOLANGCI" ]; then \
+		echo "golangci-lint not found. Install: brew install golangci-lint"; exit 1; \
+	fi; \
+	cd backend && $$GOLANGCI run ./...
 
 lint-frontend: typecheck
 
@@ -116,6 +119,26 @@ vet:
 
 tidy:
 	cd backend && go mod tidy
+
+## Dead code detection
+## Backend: golangci-lint (unused/unparam/ineffassign — already wired in lint-backend)
+##          + x/tools/deadcode for reachability from main entrypoints.
+## Frontend: knip (unused exports/files/deps) + depcheck (orphan package.json deps).
+deadcode: deadcode-backend deadcode-frontend
+
+deadcode-backend:
+	@echo "==> staticcheck/unused/unparam (via golangci-lint)"
+	@$(MAKE) lint-backend
+	@echo ""
+	@echo "==> deadcode (reachability from ./cmd entrypoints)"
+	cd backend && go run golang.org/x/tools/cmd/deadcode@latest ./cmd/...
+
+deadcode-frontend:
+	@echo "==> knip (unused exports/files/deps)"
+	cd frontend && bunx --bun knip --reporter compact || true
+	@echo ""
+	@echo "==> depcheck (orphan package.json deps)"
+	cd frontend && bunx --bun depcheck || true
 
 ## Aggregate checks used locally and in CI
 check: fmt-backend lint test
