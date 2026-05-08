@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof" // registers /debug/pprof/* on http.DefaultServeMux
 	"time"
@@ -431,7 +432,7 @@ func main() {
 	// pprof server (separate from the API). Bind to 127.0.0.1 by default;
 	// in containers set PPROF_BIND=0.0.0.0 and gate access at nginx.
 	if cfg.PprofEnabled {
-		addr := cfg.PprofBind + ":" + cfg.PprofPort
+		addr := net.JoinHostPort(cfg.PprofBind, cfg.PprofPort)
 		go func() {
 			pprofSrv := &http.Server{
 				Addr:              addr,
