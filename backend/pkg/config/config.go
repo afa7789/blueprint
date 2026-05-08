@@ -22,10 +22,22 @@ type Config struct {
 	StripeKey           string
 	StripeWebhookSecret string
 
-	StorageType string // local, s3
+	StorageType string // local, s3 (legacy — kept for backwards compat)
 	AWSBucket   string
 	AWSRegion   string
 	UploadDir   string
+
+	// Pluggable storage backend (preferred over StorageType).
+	// StorageBackend: "local" | "s3"
+	StorageBackend           string
+	StorageLocalPath         string
+	StorageURLPrefix         string // URL prefix for local-storage public URLs (default "/static")
+	StorageS3Bucket          string
+	StorageS3Region          string
+	StorageS3AccessKeyID     string
+	StorageS3SecretAccessKey string
+	StorageS3Endpoint        string // optional: R2/MinIO endpoint override
+	StorageS3UsePathStyle    bool   // true for MinIO
 
 	OpenAIKey string
 
@@ -76,6 +88,16 @@ func Load() *Config {
 		AWSRegion:   getEnv("AWS_REGION", "us-east-1"),
 		UploadDir:   getEnv("UPLOAD_DIR", "./uploads"),
 
+		StorageBackend:           getEnv("STORAGE_BACKEND", getEnv("STORAGE_TYPE", "local")),
+		StorageLocalPath:         getEnv("STORAGE_LOCAL_PATH", ""),
+		StorageURLPrefix:         getEnv("STORAGE_URL_PREFIX", "/static"),
+		StorageS3Bucket:          getEnv("STORAGE_S3_BUCKET", getEnv("AWS_BUCKET", "")),
+		StorageS3Region:          getEnv("STORAGE_S3_REGION", getEnv("AWS_REGION", "us-east-1")),
+		StorageS3AccessKeyID:     getEnv("STORAGE_S3_ACCESS_KEY_ID", getEnv("AWS_ACCESS_KEY_ID", "")),
+		StorageS3SecretAccessKey: getEnv("STORAGE_S3_SECRET_ACCESS_KEY", getEnv("AWS_SECRET_ACCESS_KEY", "")),
+		StorageS3Endpoint:        getEnv("STORAGE_S3_ENDPOINT", ""),
+		StorageS3UsePathStyle:    getEnvBool("STORAGE_S3_USE_PATH_STYLE", false),
+
 		OpenAIKey: getEnv("OPENAI_KEY", ""),
 
 		TelegramToken:  getEnv("TELEGRAM_BOT_TOKEN", ""),
@@ -111,6 +133,18 @@ func getEnv(key, defaultValue string) string {
 func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if v, err := strconv.Atoi(value); err == nil {
+			return v
+		}
+	}
+	return defaultValue
+}
+
+// getEnvBool parses common truthy/falsy strings (1, t, true, yes, on,
+// case-insensitive) via strconv.ParseBool. Falls back to defaultValue on
+// missing or unparseable input.
+func getEnvBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if v, err := strconv.ParseBool(value); err == nil {
 			return v
 		}
 	}

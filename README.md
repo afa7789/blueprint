@@ -253,9 +253,22 @@ PORT=8080
 ENV=development
 FRONTEND_URL=http://localhost:5173
 
-# Storage
-STORAGE_TYPE=local
-UPLOAD_DIR=./uploads
+# Storage — pluggable backend (local | s3)
+STORAGE_BACKEND=local
+STORAGE_LOCAL_PATH=./uploads
+STORAGE_URL_PREFIX=/static
+
+# S3-compatible (AWS S3, Cloudflare R2, MinIO, Backblaze B2, DO Spaces, ...)
+# Uncomment and set STORAGE_BACKEND=s3 to use:
+# STORAGE_S3_BUCKET=my-bucket
+# STORAGE_S3_REGION=us-east-1            # for AWS — Cloudflare R2 wants "auto"
+# STORAGE_S3_ACCESS_KEY_ID=
+# STORAGE_S3_SECRET_ACCESS_KEY=
+# STORAGE_S3_ENDPOINT=                   # set for R2 (https://<acct>.r2.cloudflarestorage.com), MinIO, B2
+# STORAGE_S3_USE_PATH_STYLE=false        # true for MinIO
+
+# Legacy aliases (still honored as fallback): STORAGE_TYPE, UPLOAD_DIR,
+# AWS_BUCKET, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
 # Payments (optional)
 STRIPE_KEY=

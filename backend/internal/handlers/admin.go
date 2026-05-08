@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"errors"
+	"log"
 	"strconv"
 
 	"github.com/afa/blueprint/backend/internal/domain"
@@ -16,6 +18,7 @@ type AdminHandler struct {
 	emailGroups domain.EmailGroupRepository
 	emailSubs   domain.EmailSubscriptionRepository
 	userGroups  domain.UserGroupRepository
+	storage     domain.Storage
 	cfg         *config.Config
 }
 
@@ -27,6 +30,7 @@ func NewAdminHandler(
 	emailGroups domain.EmailGroupRepository,
 	emailSubs domain.EmailSubscriptionRepository,
 	userGroups domain.UserGroupRepository,
+	storage domain.Storage,
 	cfg *config.Config,
 ) *AdminHandler {
 	return &AdminHandler{
@@ -37,6 +41,7 @@ func NewAdminHandler(
 		emailGroups: emailGroups,
 		emailSubs:   emailSubs,
 		userGroups:  userGroups,
+		storage:     storage,
 		cfg:         cfg,
 	}
 }
@@ -63,9 +68,13 @@ func (h *AdminHandler) Upload(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid prefix")
 	}
 
-	url, err := UploadFile(file, prefix, h.cfg)
+	url, err := UploadFormFile(c.Context(), h.storage, file, prefix)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		if errors.Is(err, domain.ErrInvalidInput) {
+			return fiber.NewError(fiber.StatusBadRequest, "invalid upload")
+		}
+		log.Printf("admin.Upload: upload failed (prefix=%s, file=%s): %v", prefix, file.Filename, err)
+		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
 	}
 	return c.JSON(fiber.Map{"url": url})
 }
