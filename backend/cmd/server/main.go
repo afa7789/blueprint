@@ -225,7 +225,6 @@ func main() {
 		middleware.RateLimit(rdb, middleware.RateLimitConfig{Max: cfg.RateLimitForgot, Window: time.Hour, KeyFunc: middleware.KeyByEmail}),
 		authHandler.ForgotPassword)
 	auth.Post("/reset-password", authHandler.ResetPassword)
-	auth.Post("/verify-email", authHandler.VerifyEmail)
 
 	// User panel routes
 	user := api.Group("/user", middleware.RequireAuth(cfg))
@@ -352,7 +351,7 @@ func main() {
 	admin.Post("/blog", blogHandler.AdminCreatePost)
 	admin.Put("/blog/:id", blogHandler.AdminUpdatePost)
 	admin.Delete("/blog/:id", blogHandler.AdminDeletePost)
-	admin.Post("/blog/:id/cover", blogHandler.AdminUploadCover)
+	admin.Post("/upload", adminHandler.Upload)
 	admin.Post("/blog/ai-generate", middleware.RequireFeature(flagRepo, "ai_blog_enabled"), blogHandler.AdminAIGenerate)
 
 	// Jobs routes

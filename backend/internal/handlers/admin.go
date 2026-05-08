@@ -41,6 +41,35 @@ func NewAdminHandler(
 	}
 }
 
+// Upload handles generic admin file uploads. The frontend sends a multipart
+// form with a `file` field and an optional `prefix` (subfolder) field. Only
+// a fixed allowlist of prefixes is accepted.
+func (h *AdminHandler) Upload(c *fiber.Ctx) error {
+	file, err := c.FormFile("file")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "file is required")
+	}
+
+	prefix := c.FormValue("prefix", "uploads")
+	allowed := map[string]bool{
+		"uploads":   true,
+		"covers":    true,
+		"banners":   true,
+		"linktree":  true,
+		"brand-kit": true,
+		"products":  true,
+	}
+	if !allowed[prefix] {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid prefix")
+	}
+
+	url, err := UploadFile(file, prefix, h.cfg)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"url": url})
+}
+
 // pagination helpers
 func paginate(c *fiber.Ctx) (page, limit, offset int) {
 	page, _ = strconv.Atoi(c.Query("page", "1"))

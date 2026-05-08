@@ -341,30 +341,6 @@ func (h *BlogHandler) AdminDeletePost(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *BlogHandler) AdminUploadCover(c *fiber.Ctx) error {
-	id := c.Params("id")
-	post, err := h.blog.FindByID(c.Context(), id)
-	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "post not found")
-	}
-
-	file, err := c.FormFile("cover")
-	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "cover file is required")
-	}
-
-	url, err := UploadFile(file, "covers", h.cfg)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	}
-
-	post.CoverImage = &url
-	if err := h.blog.Update(c.Context(), post); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	}
-	return c.JSON(fiber.Map{"cover_image": url})
-}
-
 func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 	if h.cfg.OpenAIKey == "" {
 		return fiber.NewError(fiber.StatusServiceUnavailable, "OPENAI_KEY is not configured")

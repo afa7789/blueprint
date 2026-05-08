@@ -231,6 +231,7 @@ async function uploadCover(event: Event) {
   if (!file) return
   const formData = new FormData()
   formData.append('file', file)
+  formData.append('prefix', 'covers')
   try {
     const data = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/admin/upload`, {
       method: 'POST',
