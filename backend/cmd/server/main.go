@@ -27,6 +27,7 @@ import (
 	"log"
 	"time"
 
+	swaggerdocs "github.com/afa/blueprint/backend/docs/swagger"
 	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -121,9 +122,10 @@ func main() {
 
 	// Swagger UI
 	app.Get("/swagger/*", swagger.New(swagger.Config{
-		BasePath: "/",
-		FilePath: "docs/swagger/swagger.json",
-		Path:     "/swagger",
+		BasePath:    "/",
+		FilePath:    "swagger.json",
+		FileContent: []byte(swaggerdocs.SwaggerInfo.ReadDoc()),
+		Path:        "/swagger",
 	}))
 
 	// Health check

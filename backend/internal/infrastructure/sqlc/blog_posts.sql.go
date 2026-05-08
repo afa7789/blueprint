@@ -12,10 +12,10 @@ import (
 )
 
 const countBlogPosts = `-- name: CountBlogPosts :one
-SELECT COUNT(*) FROM blog_posts WHERE ($1 = '' OR status = $1)
+SELECT COUNT(*) FROM blog_posts WHERE ($1::text = '' OR status = $1::text)
 `
 
-func (q *Queries) CountBlogPosts(ctx context.Context, dollar_1 interface{}) (int64, error) {
+func (q *Queries) CountBlogPosts(ctx context.Context, dollar_1 string) (int64, error) {
 	row := q.db.QueryRow(ctx, countBlogPosts, dollar_1)
 	var count int64
 	err := row.Scan(&count)
@@ -122,14 +122,14 @@ func (q *Queries) GetBlogPostBySlug(ctx context.Context, slug string) (BlogPost,
 const listBlogPosts = `-- name: ListBlogPosts :many
 SELECT id, title, slug, content, excerpt, cover_image, status, author_id, created_at, published_at, metadata
 FROM blog_posts
-WHERE ($1 = '' OR status = $1)
+WHERE ($1::text = '' OR status = $1::text)
 ORDER BY created_at DESC LIMIT $2 OFFSET $3
 `
 
 type ListBlogPostsParams struct {
-	Column1 interface{} `json:"column_1"`
-	Limit   int32       `json:"limit"`
-	Offset  int32       `json:"offset"`
+	Column1 string `json:"column_1"`
+	Limit   int32  `json:"limit"`
+	Offset  int32  `json:"offset"`
 }
 
 func (q *Queries) ListBlogPosts(ctx context.Context, arg ListBlogPostsParams) ([]BlogPost, error) {

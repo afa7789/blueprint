@@ -133,7 +133,7 @@ sqlc:
 	cd backend && sqlc generate
 
 e2e:
-	npx playwright test --config e2e/playwright.config.ts
+	cd frontend && bun run e2e
 
 tidy:
 	cd backend && go mod tidy

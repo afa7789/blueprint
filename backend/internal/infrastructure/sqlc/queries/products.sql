@@ -6,13 +6,13 @@ FROM products WHERE id = $1;
 SELECT id, name, description, price, stock, is_pre_sale, pre_sale_available_at, images, category_id, is_active, created_at, updated_at
 FROM products
 WHERE ($1::uuid IS NULL OR category_id = $1)
-  AND ($2 = false OR is_active = true)
+  AND ($2::boolean = false OR is_active = true)
 ORDER BY created_at DESC LIMIT $3 OFFSET $4;
 
 -- name: CountProducts :one
 SELECT COUNT(*) FROM products
 WHERE ($1::uuid IS NULL OR category_id = $1)
-  AND ($2 = false OR is_active = true);
+  AND ($2::boolean = false OR is_active = true);
 
 -- name: CreateProduct :one
 INSERT INTO products (name, description, price, stock, is_pre_sale, pre_sale_available_at, images, category_id, is_active)

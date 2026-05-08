@@ -11,7 +11,7 @@ import (
 )
 
 type Querier interface {
-	CountBlogPosts(ctx context.Context, dollar_1 interface{}) (int64, error)
+	CountBlogPosts(ctx context.Context, dollar_1 string) (int64, error)
 	CountProducts(ctx context.Context, arg CountProductsParams) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CreateBlogPost(ctx context.Context, arg CreateBlogPostParams) (CreateBlogPostRow, error)
