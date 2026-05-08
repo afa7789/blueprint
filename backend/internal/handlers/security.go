@@ -14,6 +14,12 @@ func NewSecurityHandler(settings domain.SecuritySettingRepository) *SecurityHand
 	return &SecurityHandler{settings: settings}
 }
 
+// ListSettings godoc
+// @Summary     List security settings (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/security [get]
 func (h *SecurityHandler) ListSettings(c *fiber.Ctx) error {
 	settings, err := h.settings.GetAll(c.Context())
 	if err != nil {
@@ -22,6 +28,16 @@ func (h *SecurityHandler) ListSettings(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": settings})
 }
 
+// UpdateSetting godoc
+// @Summary     Update a security setting (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Param       key path string true "Setting key"
+// @Param       body body object{value=string} true "New value"
+// @Success     200 {object} map[string]interface{}
+// @Security    BearerAuth
+// @Router      /admin/security/{key} [put]
 func (h *SecurityHandler) UpdateSetting(c *fiber.Ctx) error {
 	key := c.Params("key")
 	var req struct {

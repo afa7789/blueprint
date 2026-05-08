@@ -13,6 +13,12 @@ func NewFeatureFlagHandler(flags domain.FeatureFlagRepository) *FeatureFlagHandl
 	return &FeatureFlagHandler{flags: flags}
 }
 
+// GetAll godoc
+// @Summary     List all feature flags
+// @Tags        Features
+// @Produce     json
+// @Success     200 {array} domain.FeatureFlag
+// @Router      /features [get]
 func (h *FeatureFlagHandler) GetAll(c *fiber.Ctx) error {
 	flags, err := h.flags.GetAll(c.Context())
 	if err != nil {
@@ -21,6 +27,16 @@ func (h *FeatureFlagHandler) GetAll(c *fiber.Ctx) error {
 	return c.JSON(flags)
 }
 
+// Toggle godoc
+// @Summary     Toggle a feature flag
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Param       key path string true "Feature flag key"
+// @Param       body body object{enabled=boolean} true "Flag state"
+// @Success     200 {object} map[string]interface{}
+// @Security    BearerAuth
+// @Router      /admin/features/{key} [put]
 func (h *FeatureFlagHandler) Toggle(c *fiber.Ctx) error {
 	key := c.Params("key")
 	var req struct {

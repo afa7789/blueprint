@@ -13,7 +13,13 @@ func NewLegalHandler(pages domain.LegalPageRepository) *LegalHandler {
 	return &LegalHandler{pages: pages}
 }
 
-// Public: get active page by slug
+// GetBySlug godoc
+// @Summary     Get a legal page by slug
+// @Tags        Legal
+// @Produce     json
+// @Param       slug path string true "Page slug"
+// @Success     200 {object} domain.LegalPage
+// @Router      /legal/{slug} [get]
 func (h *LegalHandler) GetBySlug(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	page, err := h.pages.FindBySlug(c.Context(), slug)
@@ -26,7 +32,12 @@ func (h *LegalHandler) GetBySlug(c *fiber.Ctx) error {
 	return c.JSON(page)
 }
 
-// Public: list active pages (slug + title only, for footer)
+// ListActive godoc
+// @Summary     List active legal pages
+// @Tags        Legal
+// @Produce     json
+// @Success     200 {array} object{slug=string,title=string}
+// @Router      /legal [get]
 func (h *LegalHandler) ListActive(c *fiber.Ctx) error {
 	pages, err := h.pages.List(c.Context(), true)
 	if err != nil {
@@ -44,7 +55,12 @@ func (h *LegalHandler) ListActive(c *fiber.Ctx) error {
 	return c.JSON(links)
 }
 
-// Admin: list all pages (including inactive)
+// AdminList godoc
+// @Summary     List all legal pages (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/legal [get]
 func (h *LegalHandler) AdminList(c *fiber.Ctx) error {
 	pages, err := h.pages.List(c.Context(), false)
 	if err != nil {
@@ -53,7 +69,13 @@ func (h *LegalHandler) AdminList(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": pages})
 }
 
-// Admin: create page
+// AdminCreate godoc
+// @Summary     Create a legal page (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/legal [post]
 func (h *LegalHandler) AdminCreate(c *fiber.Ctx) error {
 	var page domain.LegalPage
 	if err := c.BodyParser(&page); err != nil {
@@ -68,7 +90,13 @@ func (h *LegalHandler) AdminCreate(c *fiber.Ctx) error {
 	return c.Status(201).JSON(page)
 }
 
-// Admin: update page
+// AdminUpdate godoc
+// @Summary     Update a legal page (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/legal/{id} [put]
 func (h *LegalHandler) AdminUpdate(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var page domain.LegalPage
@@ -82,7 +110,11 @@ func (h *LegalHandler) AdminUpdate(c *fiber.Ctx) error {
 	return c.JSON(page)
 }
 
-// Admin: delete page
+// AdminDelete godoc
+// @Summary     Delete a legal page (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/legal/{id} [delete]
 func (h *LegalHandler) AdminDelete(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if err := h.pages.Delete(c.Context(), id); err != nil {

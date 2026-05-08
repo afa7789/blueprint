@@ -1,3 +1,23 @@
+// Blueprint API — Full-stack starter kit
+//
+// @title           Blueprint API
+// @version         1.0.0
+// @description     Full-stack starter kit with Go + Fiber backend and Vue 3 frontend.
+// @termsOfService  https://github.com/afa/blueprint
+
+// @contact.name   Blueprint Maintainer
+// @contact.url    https://github.com/afa/blueprint
+
+// @license.name  MIT
+// @license.url   https://github.com/afa/blueprint/blob/main/LICENSE
+
+// @host      localhost:8080
+// @BasePath  /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in                         header
+// @name                       Authorization
+// @description               JWT token (Bearer <token>)
 package main
 
 import (
@@ -7,6 +27,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -97,6 +118,13 @@ func main() {
 		fasthttpHandler(c.Context())
 		return nil
 	})
+
+	// Swagger UI
+	app.Get("/swagger/*", swagger.New(swagger.Config{
+		BasePath: "/",
+		FilePath: "docs/swagger/swagger.json",
+		Path:     "/swagger",
+	}))
 
 	// Health check
 	app.Get("/healthz", func(c *fiber.Ctx) error {

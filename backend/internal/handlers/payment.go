@@ -29,6 +29,14 @@ type createPaymentRequest struct {
 	OrderID string `json:"order_id"`
 }
 
+// CreateStripePayment godoc
+// @Summary     Create a Stripe payment intent
+// @Tags        Payments
+// @Accept      json
+// @Produce     json
+// @Param       body body createPaymentRequest true "Order ID"
+// @Success     200 {object} map[string]interface{}
+// @Router      /payments/stripe [post]
 func (h *PaymentHandler) CreateStripePayment(c *fiber.Ctx) error {
 	if h.cfg.StripeKey == "" {
 		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "stripe not configured"})
@@ -63,6 +71,13 @@ func (h *PaymentHandler) CreateStripePayment(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"client_secret": pi.ClientSecret})
 }
 
+// StripeWebhook godoc
+// @Summary     Handle Stripe webhook events
+// @Tags        Payments
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} map[string]interface{}
+// @Router      /payments/stripe/webhook [post]
 func (h *PaymentHandler) StripeWebhook(c *fiber.Ctx) error {
 	payload := c.Body()
 	sigHeader := c.Get("Stripe-Signature")
@@ -98,6 +113,14 @@ func (h *PaymentHandler) StripeWebhook(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
+// CreatePixPayment godoc
+// @Summary     Create a PIX payment
+// @Tags        Payments
+// @Accept      json
+// @Produce     json
+// @Param       body body createPaymentRequest true "Order ID"
+// @Success     200 {object} map[string]interface{}
+// @Router      /payments/pix [post]
 func (h *PaymentHandler) CreatePixPayment(c *fiber.Ctx) error {
 	var req createPaymentRequest
 	if err := c.BodyParser(&req); err != nil || req.OrderID == "" {
@@ -139,6 +162,12 @@ func (h *PaymentHandler) CreatePixPayment(c *fiber.Ctx) error {
 	})
 }
 
+// GetPixConfig godoc
+// @Summary     Get PIX configuration (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/pix-config [get]
 func (h *PaymentHandler) GetPixConfig(c *fiber.Ctx) error {
 	cfg, err := h.pixCfg.Get(c.Context())
 	if err != nil {
@@ -147,6 +176,13 @@ func (h *PaymentHandler) GetPixConfig(c *fiber.Ctx) error {
 	return c.JSON(cfg)
 }
 
+// UpdatePixConfig godoc
+// @Summary     Update PIX configuration (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/pix-config [put]
 func (h *PaymentHandler) UpdatePixConfig(c *fiber.Ctx) error {
 	var cfg domain.PixConfig
 	if err := c.BodyParser(&cfg); err != nil {
@@ -164,6 +200,14 @@ func (h *PaymentHandler) UpdatePixConfig(c *fiber.Ctx) error {
 	return c.JSON(cfg)
 }
 
+// UploadPixReceipt godoc
+// @Summary     Upload PIX payment receipt
+// @Tags        Payments
+// @Accept      multipart/form-data
+// @Produce     json
+// @Param       order_id path string true "Order ID"
+// @Success     200 {object} map[string]interface{}
+// @Router      /payments/pix/{order_id}/receipt [post]
 func (h *PaymentHandler) UploadPixReceipt(c *fiber.Ctx) error {
 	orderID := c.Params("order_id")
 	userID, _ := c.Locals("user_id").(string)
@@ -207,6 +251,12 @@ func (h *PaymentHandler) UploadPixReceipt(c *fiber.Ctx) error {
 	})
 }
 
+// ApprovePixPayment godoc
+// @Summary     Approve a PIX payment (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/orders/{id}/approve-pix [put]
 func (h *PaymentHandler) ApprovePixPayment(c *fiber.Ctx) error {
 	orderID := c.Params("id")
 	order, err := h.orders.FindByID(c.Context(), orderID)

@@ -97,6 +97,15 @@ func (h *AuthHandler) setTokenCookies(c *fiber.Ctx, accessToken, refreshToken st
 	})
 }
 
+// Register godoc
+// @Summary     Register a new user
+// @Tags        Auth
+// @Accept      json
+// @Produce     json
+// @Param       body body object{email=string,password=string,name=string} true "User credentials"
+// @Success     201 {object} map[string]interface{}
+// @Failure     400 {object} map[string]interface{}
+// @Router      /auth/register [post]
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	var req struct {
 		Email    string  `json:"email"`
@@ -167,6 +176,15 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	})
 }
 
+// Login godoc
+// @Summary     Login with email and password
+// @Tags        Auth
+// @Accept      json
+// @Produce     json
+// @Param       body body object{email=string,password=string} true "Login credentials"
+// @Success     200 {object} map[string]interface{}
+// @Failure     401 {object} map[string]interface{}
+// @Router      /auth/login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var req struct {
 		Email    string `json:"email"`
@@ -210,6 +228,14 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	})
 }
 
+// Refresh godoc
+// @Summary     Refresh access token
+// @Tags        Auth
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} map[string]interface{}
+// @Failure     401 {object} map[string]interface{}
+// @Router      /auth/refresh [post]
 func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 	tokenStr := c.Cookies("refresh_token")
 	if tokenStr == "" {
@@ -233,6 +259,12 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"access_token": accessToken})
 }
 
+// Logout godoc
+// @Summary     Logout and clear auth cookies
+// @Tags        Auth
+// @Produce     json
+// @Success     200 {object} map[string]interface{}
+// @Router      /auth/logout [post]
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:   "access_token",
@@ -249,6 +281,14 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "logged out"})
 }
 
+// Me godoc
+// @Summary     Get current user profile
+// @Tags        Auth
+// @Produce     json
+// @Success     200 {object} userResponse
+// @Failure     404 {object} map[string]interface{}
+// @Security    BearerAuth
+// @Router      /auth/me [get]
 func (h *AuthHandler) Me(c *fiber.Ctx) error {
 	userID, _ := c.Locals("user_id").(string)
 	u, err := h.users.FindByID(c.Context(), userID)
@@ -258,6 +298,14 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 	return c.JSON(toUserResponse(u))
 }
 
+// ForgotPassword godoc
+// @Summary     Request password reset email
+// @Tags        Auth
+// @Accept      json
+// @Produce     json
+// @Param       body body object{email=string} true "Registered email"
+// @Success     200 {object} map[string]interface{}
+// @Router      /auth/forgot-password [post]
 func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 	var req struct {
 		Email string `json:"email"`
@@ -269,6 +317,14 @@ func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "if that email exists, a reset link has been sent"})
 }
 
+// ResetPassword godoc
+// @Summary     Reset password with token
+// @Tags        Auth
+// @Accept      json
+// @Produce     json
+// @Param       body body object{token=string,password=string} true "Reset token and new password"
+// @Success     200 {object} map[string]interface{}
+// @Router      /auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 	var req struct {
 		Token    string `json:"token"`

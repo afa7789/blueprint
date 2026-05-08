@@ -38,6 +38,12 @@ func (h *ToolsHandler) toolURL(tool domain.AdminTool) string {
 	return ""
 }
 
+// ListTools godoc
+// @Summary     List admin tools (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/tools [get]
 func (h *ToolsHandler) ListTools(c *fiber.Ctx) error {
 	tools, err := h.tools.List(c.Context(), true)
 	if err != nil {
