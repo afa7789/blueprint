@@ -73,7 +73,7 @@ func (h *AdminHandler) Upload(c *fiber.Ctx) error {
 		if errors.Is(err, domain.ErrInvalidInput) {
 			return fiber.NewError(fiber.StatusBadRequest, "invalid upload")
 		}
-		log.Printf("admin.Upload: upload failed (prefix=%s, file=%s): %v", prefix, file.Filename, err)
+		log.Printf("admin.Upload: upload failed (prefix=%s, file=%q): %v", prefix, file.Filename, err)
 		return fiber.NewError(fiber.StatusInternalServerError, "upload failed")
 	}
 	return c.JSON(fiber.Map{"url": url})
