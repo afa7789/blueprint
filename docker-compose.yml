@@ -54,6 +54,9 @@ services:
       PGWEB_URL: /pgweb/
       GRAFANA_URL: /grafana/
       PROMETHEUS_URL: /prometheus/
+      PPROF_ENABLED: "true"
+      PPROF_BIND: 0.0.0.0
+      PPROF_PORT: "6060"
     depends_on:
       postgres:
         condition: service_healthy
