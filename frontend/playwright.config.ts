@@ -15,7 +15,7 @@ export default defineConfig({
     command: 'docker compose up -d --wait',
     url: 'http://localhost/healthz',
     reuseExistingServer: true,
-    timeout: 180000,
+    timeout: 300000,
     cwd: '..',
   },
 })
