@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
-  testDir: '../e2e',
+  testDir: './e2e',
   timeout: 30000,
   retries: 1,
   use: {
@@ -15,7 +15,7 @@ export default defineConfig({
     command: 'docker compose up -d --wait',
     url: 'http://localhost/healthz',
     reuseExistingServer: true,
-    timeout: 60000,
+    timeout: 180000,
     cwd: '..',
   },
 })

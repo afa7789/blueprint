@@ -90,30 +90,15 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
           cache: true
 
-      - name: Start services
-        run: docker compose up -d
-        timeout-minutes: 3
-
-      - name: Wait for health
+      - name: Install dependencies
+        working-directory: frontend
         run: |
-          for i in $(seq 1 30); do
-            if curl -fsS http://localhost/healthz; then
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "health check failed: /healthz not ready" >&2
-          exit 1
-
-      - name: Install Playwright
-        run: |
-          sudo chown -R "$USER:$USER" frontend/node_modules || true
-          cd frontend
           bun install --frozen-lockfile
-          bunx --bun playwright install chromium
+          bunx --bun playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: cd frontend && bun run e2e
+        working-directory: frontend
+        run: bunx --bun playwright test --config playwright.config.ts
 
       - name: Upload report
         if: failure()
@@ -121,6 +106,10 @@ jobs:
         with:
           name: playwright-report
           path: frontend/playwright-report/
+
+      - name: Dump container logs
+        if: failure()
+        run: docker compose logs --no-color --tail=200
 
       - name: Cleanup
         if: always()
