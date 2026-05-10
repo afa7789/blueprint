@@ -95,6 +95,8 @@ func (h *LegalHandler) AdminCreate(c *fiber.Ctx) error {
 // @Tags        Admin
 // @Accept      json
 // @Produce     json
+// @Param       id path string true "Legal page ID"
+// @Success     200 {object} domain.LegalPage
 // @Security    BearerAuth
 // @Router      /admin/legal/{id} [put]
 func (h *LegalHandler) AdminUpdate(c *fiber.Ctx) error {
@@ -113,6 +115,9 @@ func (h *LegalHandler) AdminUpdate(c *fiber.Ctx) error {
 // AdminDelete godoc
 // @Summary     Delete a legal page (admin)
 // @Tags        Admin
+// @Produce     json
+// @Param       id path string true "Legal page ID"
+// @Success     200 {object} map[string]interface{}
 // @Security    BearerAuth
 // @Router      /admin/legal/{id} [delete]
 func (h *LegalHandler) AdminDelete(c *fiber.Ctx) error {

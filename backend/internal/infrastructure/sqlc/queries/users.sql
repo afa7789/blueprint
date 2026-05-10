@@ -19,7 +19,7 @@ WHERE id = $5;
 DELETE FROM users WHERE id = $1;
 
 -- name: ListUsers :many
-SELECT id, email, password_hash, name, role, email_verified, email_verified_at, stripe_customer_id, created_at, updated_at
+SELECT id, email, name, role, email_verified, email_verified_at, stripe_customer_id, created_at, updated_at
 FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2;
 
 -- name: CountUsers :one

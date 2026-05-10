@@ -75,6 +75,7 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 // @Tags        User
 // @Accept      json
 // @Produce     json
+// @Success     200 {object} map[string]interface{}
 // @Security    BearerAuth
 // @Router      /user/profile [put]
 func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {

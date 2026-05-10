@@ -395,11 +395,31 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Admin"
                 ],
                 "summary": "Delete a coupon (admin)",
-                "responses": {}
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Coupon ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/admin/email-groups": {
@@ -774,7 +794,23 @@ const docTemplate = `{
                     "Admin"
                 ],
                 "summary": "Update a legal page (admin)",
-                "responses": {}
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Legal page ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afa_blueprint_backend_internal_domain.LegalPage"
+                        }
+                    }
+                }
             },
             "delete": {
                 "security": [
@@ -782,11 +818,31 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Admin"
                 ],
                 "summary": "Delete a legal page (admin)",
-                "responses": {}
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Legal page ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/admin/linktree": {
@@ -1074,12 +1130,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "value": {
-                                    "type": "string"
-                                }
-                            }
+                            "$ref": "#/definitions/internal_handlers.SecurityUpdateRequest"
                         }
                     }
                 ],
@@ -2083,7 +2134,15 @@ const docTemplate = `{
                     "User"
                 ],
                 "summary": "Update user profile",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/user/saved-cards": {
@@ -2179,15 +2238,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "email": {
-                                    "type": "string"
-                                },
-                                "name": {
-                                    "type": "string"
-                                }
-                            }
+                            "$ref": "#/definitions/internal_handlers.WaitlistRequest"
                         }
                     }
                 ],
@@ -2233,10 +2284,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "metadata": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                    "type": "string"
                 },
                 "published_at": {
                     "type": "string"
@@ -2328,10 +2376,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "shipping_address": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                    "type": "string"
                 },
                 "status": {
                     "type": "string"
@@ -2366,10 +2411,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "images": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                    "type": "string"
                 },
                 "is_active": {
                     "type": "boolean"
@@ -2410,6 +2452,25 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers.SecurityUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers.WaitlistRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }

@@ -4,7 +4,7 @@
 	fmt fmt-backend fmt-frontend \
 	typecheck tidy vet \
 	deadcode deadcode-backend deadcode-frontend \
-	vulncheck swagger sqlc check ci clean help
+	vulncheck swagger sqlc e2e check ci clean help
 
 # === Local Development (tudo via Docker, 1 porta) ===
 

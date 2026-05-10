@@ -15,8 +15,8 @@ const countBlogPosts = `-- name: CountBlogPosts :one
 SELECT COUNT(*) FROM blog_posts WHERE ($1::text = '' OR status = $1::text)
 `
 
-func (q *Queries) CountBlogPosts(ctx context.Context, dollar_1 string) (int64, error) {
-	row := q.db.QueryRow(ctx, countBlogPosts, dollar_1)
+func (q *Queries) CountBlogPosts(ctx context.Context, statusFilter string) (int64, error) {
+	row := q.db.QueryRow(ctx, countBlogPosts, statusFilter)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -123,17 +123,17 @@ const listBlogPosts = `-- name: ListBlogPosts :many
 SELECT id, title, slug, content, excerpt, cover_image, status, author_id, created_at, published_at, metadata
 FROM blog_posts
 WHERE ($1::text = '' OR status = $1::text)
-ORDER BY created_at DESC LIMIT $2 OFFSET $3
+ORDER BY created_at DESC LIMIT $3 OFFSET $2
 `
 
 type ListBlogPostsParams struct {
-	Column1 string `json:"column_1"`
-	Limit   int32  `json:"limit"`
-	Offset  int32  `json:"offset"`
+	StatusFilter string `json:"status_filter"`
+	RowOffset    int32  `json:"row_offset"`
+	RowLimit     int32  `json:"row_limit"`
 }
 
 func (q *Queries) ListBlogPosts(ctx context.Context, arg ListBlogPostsParams) ([]BlogPost, error) {
-	rows, err := q.db.Query(ctx, listBlogPosts, arg.Column1, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listBlogPosts, arg.StatusFilter, arg.RowOffset, arg.RowLimit)
 	if err != nil {
 		return nil, err
 	}

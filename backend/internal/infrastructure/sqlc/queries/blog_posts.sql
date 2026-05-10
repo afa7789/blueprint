@@ -9,11 +9,11 @@ FROM blog_posts WHERE slug = $1;
 -- name: ListBlogPosts :many
 SELECT id, title, slug, content, excerpt, cover_image, status, author_id, created_at, published_at, metadata
 FROM blog_posts
-WHERE ($1::text = '' OR status = $1::text)
-ORDER BY created_at DESC LIMIT $2 OFFSET $3;
+WHERE (sqlc.arg(status_filter)::text = '' OR status = sqlc.arg(status_filter)::text)
+ORDER BY created_at DESC LIMIT sqlc.arg(row_limit) OFFSET sqlc.arg(row_offset);
 
 -- name: CountBlogPosts :one
-SELECT COUNT(*) FROM blog_posts WHERE ($1::text = '' OR status = $1::text);
+SELECT COUNT(*) FROM blog_posts WHERE (sqlc.arg(status_filter)::text = '' OR status = sqlc.arg(status_filter)::text);
 
 -- name: CreateBlogPost :one
 INSERT INTO blog_posts (title, slug, content, excerpt, cover_image, status, author_id, published_at, metadata)

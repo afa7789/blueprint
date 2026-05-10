@@ -2,10 +2,12 @@ import { test, expect } from '@playwright/test'
 
 test('health endpoint returns 200', async ({ request }) => {
   const res = await request.get('/healthz')
-  expect(res.ok()).toBeTruthy()
+  expect(res.status()).toBe(200)
 })
 
 test('frontend loads', async ({ page }) => {
-  await page.goto('/')
-  await expect(page.locator('body')).toBeVisible()
+  const response = await page.goto('/')
+  expect(response).not.toBeNull()
+  expect(response!.status()).toBeLessThan(400)
+  await expect(page.locator('#app')).toBeVisible()
 })

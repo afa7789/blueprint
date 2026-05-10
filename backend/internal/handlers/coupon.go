@@ -34,6 +34,9 @@ func (h *CouponHandler) ValidateCoupon(c *fiber.Ctx) error {
 	if req.Code == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "code required")
 	}
+	if req.Subtotal < 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "subtotal must be non-negative")
+	}
 
 	coupon, err := h.coupons.FindByCode(c.Context(), req.Code)
 	if err != nil {
@@ -100,9 +103,18 @@ func (h *CouponHandler) AdminCreateCoupon(c *fiber.Ctx) error {
 // AdminDeleteCoupon godoc
 // @Summary     Delete a coupon (admin)
 // @Tags        Admin
+// @Produce     json
+// @Param       id path string true "Coupon ID"
+// @Success     200 {object} map[string]interface{}
 // @Security    BearerAuth
 // @Router      /admin/coupons/{id} [delete]
 func (h *CouponHandler) AdminDeleteCoupon(c *fiber.Ctx) error {
-	// CouponRepository has no Delete method; return method not allowed.
-	return fiber.NewError(fiber.StatusMethodNotAllowed, "coupon deletion not supported")
+	id := c.Params("id")
+	if id == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "id is required")
+	}
+	if err := h.coupons.Delete(c.Context(), id); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"deleted": true})
 }

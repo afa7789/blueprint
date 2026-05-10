@@ -18,12 +18,12 @@ WHERE ($1::uuid IS NULL OR category_id = $1)
 `
 
 type CountProductsParams struct {
-	Column1 pgtype.UUID `json:"column_1"`
-	Column2 bool        `json:"column_2"`
+	CategoryID pgtype.UUID `json:"category_id"`
+	ActiveOnly bool        `json:"active_only"`
 }
 
 func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countProducts, arg.Column1, arg.Column2)
+	row := q.db.QueryRow(ctx, countProducts, arg.CategoryID, arg.ActiveOnly)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -109,22 +109,22 @@ SELECT id, name, description, price, stock, is_pre_sale, pre_sale_available_at, 
 FROM products
 WHERE ($1::uuid IS NULL OR category_id = $1)
   AND ($2::boolean = false OR is_active = true)
-ORDER BY created_at DESC LIMIT $3 OFFSET $4
+ORDER BY created_at DESC LIMIT $4 OFFSET $3
 `
 
 type ListProductsParams struct {
-	Column1 pgtype.UUID `json:"column_1"`
-	Column2 bool        `json:"column_2"`
-	Limit   int32       `json:"limit"`
-	Offset  int32       `json:"offset"`
+	CategoryID pgtype.UUID `json:"category_id"`
+	ActiveOnly bool        `json:"active_only"`
+	RowOffset  int32       `json:"row_offset"`
+	RowLimit   int32       `json:"row_limit"`
 }
 
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error) {
 	rows, err := q.db.Query(ctx, listProducts,
-		arg.Column1,
-		arg.Column2,
-		arg.Limit,
-		arg.Offset,
+		arg.CategoryID,
+		arg.ActiveOnly,
+		arg.RowOffset,
+		arg.RowLimit,
 	)
 	if err != nil {
 		return nil, err

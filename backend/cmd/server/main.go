@@ -120,13 +120,15 @@ func main() {
 		return nil
 	})
 
-	// Swagger UI
-	app.Get("/swagger/*", swagger.New(swagger.Config{
-		BasePath:    "/",
-		FilePath:    "swagger.json",
-		FileContent: []byte(swaggerdocs.SwaggerInfo.ReadDoc()),
-		Path:        "/swagger",
-	}))
+	// Swagger UI (non-production only)
+	if cfg.Env != "production" {
+		app.Get("/swagger/*", swagger.New(swagger.Config{
+			BasePath:    "/",
+			FilePath:    "swagger.json",
+			FileContent: []byte(swaggerdocs.SwaggerInfo.ReadDoc()),
+			Path:        "/swagger",
+		}))
+	}
 
 	// Health check
 	app.Get("/healthz", func(c *fiber.Ctx) error {

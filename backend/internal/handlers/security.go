@@ -28,21 +28,23 @@ func (h *SecurityHandler) ListSettings(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": settings})
 }
 
+type SecurityUpdateRequest struct {
+	Value string `json:"value"`
+}
+
 // UpdateSetting godoc
 // @Summary     Update a security setting (admin)
 // @Tags        Admin
 // @Accept      json
 // @Produce     json
 // @Param       key path string true "Setting key"
-// @Param       body body object{value=string} true "New value"
+// @Param       body body SecurityUpdateRequest true "New value"
 // @Success     200 {object} map[string]interface{}
 // @Security    BearerAuth
 // @Router      /admin/security/{key} [put]
 func (h *SecurityHandler) UpdateSetting(c *fiber.Ctx) error {
 	key := c.Params("key")
-	var req struct {
-		Value string `json:"value"`
-	}
+	var req SecurityUpdateRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "invalid request"})
 	}

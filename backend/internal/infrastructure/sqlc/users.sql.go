@@ -143,7 +143,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (GetUserByIDR
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, password_hash, name, role, email_verified, email_verified_at, stripe_customer_id, created_at, updated_at
+SELECT id, email, name, role, email_verified, email_verified_at, stripe_customer_id, created_at, updated_at
 FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2
 `
 
@@ -155,7 +155,6 @@ type ListUsersParams struct {
 type ListUsersRow struct {
 	ID               pgtype.UUID      `json:"id"`
 	Email            string           `json:"email"`
-	PasswordHash     string           `json:"password_hash"`
 	Name             pgtype.Text      `json:"name"`
 	Role             pgtype.Text      `json:"role"`
 	EmailVerified    pgtype.Bool      `json:"email_verified"`
@@ -177,7 +176,6 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUse
 		if err := rows.Scan(
 			&i.ID,
 			&i.Email,
-			&i.PasswordHash,
 			&i.Name,
 			&i.Role,
 			&i.EmailVerified,

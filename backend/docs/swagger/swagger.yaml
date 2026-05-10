@@ -15,9 +15,7 @@ definitions:
       id:
         type: string
       metadata:
-        items:
-          type: integer
-        type: array
+        type: string
       published_at:
         type: string
       slug:
@@ -77,9 +75,7 @@ definitions:
       receipt_url:
         type: string
       shipping_address:
-        items:
-          type: integer
-        type: array
+        type: string
       status:
         type: string
       total:
@@ -102,9 +98,7 @@ definitions:
       id:
         type: string
       images:
-        items:
-          type: integer
-        type: array
+        type: string
       is_active:
         type: boolean
       is_pre_sale:
@@ -131,6 +125,18 @@ definitions:
       name:
         type: string
       source:
+        type: string
+    type: object
+  internal_handlers.SecurityUpdateRequest:
+    properties:
+      value:
+        type: string
+    type: object
+  internal_handlers.WaitlistRequest:
+    properties:
+      email:
+        type: string
+      name:
         type: string
     type: object
   internal_handlers.createOrderItem:
@@ -435,7 +441,20 @@ paths:
       - Admin
   /admin/coupons/{id}:
     delete:
-      responses: {}
+      parameters:
+      - description: Coupon ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
       security:
       - BearerAuth: []
       summary: Delete a coupon (admin)
@@ -655,7 +674,20 @@ paths:
       - Admin
   /admin/legal/{id}:
     delete:
-      responses: {}
+      parameters:
+      - description: Legal page ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
       security:
       - BearerAuth: []
       summary: Delete a legal page (admin)
@@ -664,9 +696,19 @@ paths:
     put:
       consumes:
       - application/json
+      parameters:
+      - description: Legal page ID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_afa_blueprint_backend_internal_domain.LegalPage'
       security:
       - BearerAuth: []
       summary: Update a legal page (admin)
@@ -838,10 +880,7 @@ paths:
         name: body
         required: true
         schema:
-          properties:
-            value:
-              type: string
-          type: object
+          $ref: '#/definitions/internal_handlers.SecurityUpdateRequest'
       produces:
       - application/json
       responses:
@@ -1478,7 +1517,12 @@ paths:
       - application/json
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
       security:
       - BearerAuth: []
       summary: Update user profile
@@ -1538,12 +1582,7 @@ paths:
         name: body
         required: true
         schema:
-          properties:
-            email:
-              type: string
-            name:
-              type: string
-          type: object
+          $ref: '#/definitions/internal_handlers.WaitlistRequest'
       produces:
       - application/json
       responses:

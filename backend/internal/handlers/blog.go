@@ -453,50 +453,29 @@ func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 	}
 
 	payload := map[string]interface{}{
-		"model": "gpt-5.4-mini",
-		"reasoning": map[string]interface{}{
-			"effort": "low",
-		},
-		"input": []map[string]interface{}{
+		"model": "gpt-4o-mini",
+		"messages": []map[string]string{
 			{
-				"role": "developer",
-				"content": []map[string]string{
-					{
-						"type": "input_text",
-						"text": "You write polished blog drafts for a SaaS product. Return valid JSON only.",
-					},
-				},
+				"role":    "system",
+				"content": "You write polished blog drafts for a SaaS product. Return valid JSON only.",
 			},
 			{
-				"role": "user",
-				"content": []map[string]string{
-					{
-						"type": "input_text",
-						"text": "Write a blog draft based on this prompt:\n\n" + body.Prompt + "\n\nReturn JSON with title, slug, excerpt, and content. The content should be HTML with headings and paragraphs.",
-					},
-				},
+				"role":    "user",
+				"content": "Write a blog draft based on this prompt:\n\n" + body.Prompt + "\n\nReturn JSON with title, slug, excerpt, and content. The content should be HTML with headings and paragraphs.",
 			},
 		},
-		"text": map[string]interface{}{
-			"format": map[string]interface{}{
-				"type":   "json_schema",
+		"response_format": map[string]interface{}{
+			"type": "json_schema",
+			"json_schema": map[string]interface{}{
 				"name":   "blog_post_draft",
 				"strict": true,
 				"schema": map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"title": map[string]string{
-							"type": "string",
-						},
-						"slug": map[string]string{
-							"type": "string",
-						},
-						"excerpt": map[string]string{
-							"type": "string",
-						},
-						"content": map[string]string{
-							"type": "string",
-						},
+						"title":   map[string]string{"type": "string"},
+						"slug":    map[string]string{"type": "string"},
+						"excerpt": map[string]string{"type": "string"},
+						"content": map[string]string{"type": "string"},
 					},
 					"required":             []string{"title", "slug", "excerpt", "content"},
 					"additionalProperties": false,
@@ -510,7 +489,7 @@ func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	req, err := http.NewRequestWithContext(c.Context(), http.MethodPost, "https://api.openai.com/v1/responses", bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(c.Context(), http.MethodPost, "https://api.openai.com/v1/chat/completions", bytes.NewReader(bodyBytes))
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
@@ -534,31 +513,19 @@ func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 	}
 
 	var response struct {
-		OutputText string `json:"output_text"`
-		Output     []struct {
-			Content []struct {
-				Type string `json:"type"`
-				Text string `json:"text"`
-			} `json:"content"`
-		} `json:"output"`
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
 	}
 	if err := json.Unmarshal(raw, &response); err != nil {
 		return fiber.NewError(fiber.StatusBadGateway, "invalid OpenAI response")
 	}
 
-	text := strings.TrimSpace(response.OutputText)
-	if text == "" {
-		for _, item := range response.Output {
-			for _, content := range item.Content {
-				if content.Type == "output_text" && strings.TrimSpace(content.Text) != "" {
-					text = strings.TrimSpace(content.Text)
-					break
-				}
-			}
-			if text != "" {
-				break
-			}
-		}
+	var text string
+	if len(response.Choices) > 0 {
+		text = strings.TrimSpace(response.Choices[0].Message.Content)
 	}
 	if text == "" {
 		return fiber.NewError(fiber.StatusBadGateway, "empty OpenAI response")

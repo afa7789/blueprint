@@ -8,7 +8,7 @@ import (
 type User struct {
 	ID               string     `json:"id"`
 	Email            string     `json:"email"`
-	PasswordHash     string     `json:"password_hash"`
+	PasswordHash     string     `json:"-"`
 	Name             *string    `json:"name"`
 	Role             string     `json:"role"`
 	EmailVerified    bool       `json:"email_verified"`
@@ -31,8 +31,8 @@ type UserProfile struct {
 	UserID    string          `json:"user_id"`
 	Phone     *string         `json:"phone"`
 	AvatarURL *string         `json:"avatar_url"`
-	Address   json.RawMessage `json:"address"`
-	Metadata  json.RawMessage `json:"metadata"`
+	Address   json.RawMessage `json:"address" swaggertype:"string"`
+	Metadata  json.RawMessage `json:"metadata" swaggertype:"string"`
 }
 
 type FeatureFlag struct {
@@ -53,7 +53,7 @@ type BlogPost struct {
 	AuthorID    *string         `json:"author_id"`
 	CreatedAt   time.Time       `json:"created_at"`
 	PublishedAt *time.Time      `json:"published_at"`
-	Metadata    json.RawMessage `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata" swaggertype:"string"`
 }
 
 type Category struct {
@@ -71,7 +71,7 @@ type Product struct {
 	Stock              int             `json:"stock"`
 	IsPreSale          bool            `json:"is_pre_sale"`
 	PreSaleAvailableAt *time.Time      `json:"pre_sale_available_at"`
-	Images             json.RawMessage `json:"images"`
+	Images             json.RawMessage `json:"images" swaggertype:"string"`
 	CategoryID         *string         `json:"category_id"`
 	IsActive           bool            `json:"is_active"`
 	CreatedAt          time.Time       `json:"created_at"`
@@ -85,7 +85,7 @@ type Order struct {
 	Total           float64         `json:"total"`
 	PaymentMethod   *string         `json:"payment_method"`
 	PaymentID       *string         `json:"payment_id"`
-	ShippingAddress json.RawMessage `json:"shipping_address"`
+	ShippingAddress json.RawMessage `json:"shipping_address" swaggertype:"string"`
 	TrackingCode    *string         `json:"tracking_code"`
 	ReceiptURL      *string         `json:"receipt_url"`
 	CreatedAt       time.Time       `json:"created_at"`
@@ -195,7 +195,7 @@ type HealthCheck struct {
 	ServiceName string          `json:"service_name"`
 	Status      string          `json:"status"`
 	LatencyMs   *int            `json:"latency_ms"`
-	Details     json.RawMessage `json:"details"`
+	Details     json.RawMessage `json:"details" swaggertype:"string"`
 	CheckedAt   time.Time       `json:"checked_at"`
 }
 
@@ -228,7 +228,7 @@ type JobExecution struct {
 	FinishedAt *time.Time      `json:"finished_at"`
 	DurationMs *int            `json:"duration_ms"`
 	Error      *string         `json:"error"`
-	Output     json.RawMessage `json:"output"`
+	Output     json.RawMessage `json:"output" swaggertype:"string"`
 }
 
 // AdminTool represents a link to an external admin tool
@@ -251,7 +251,7 @@ type AuditLog struct {
 	Action     string          `json:"action"`
 	Resource   *string         `json:"resource"`
 	ResourceID *string         `json:"resource_id"`
-	Details    json.RawMessage `json:"details"`
+	Details    json.RawMessage `json:"details" swaggertype:"string"`
 	IPAddress  *string         `json:"ip_address"`
 	CreatedAt  time.Time       `json:"created_at"`
 }
@@ -262,7 +262,7 @@ type AppLog struct {
 	Level     string          `json:"level"`
 	Message   string          `json:"message"`
 	Source    *string         `json:"source"`
-	Metadata  json.RawMessage `json:"metadata"`
+	Metadata  json.RawMessage `json:"metadata" swaggertype:"string"`
 	CreatedAt time.Time       `json:"created_at"`
 }
 

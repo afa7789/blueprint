@@ -13,20 +13,22 @@ func NewWaitlistHandler(waitlist domain.WaitlistRepository) *WaitlistHandler {
 	return &WaitlistHandler{waitlist: waitlist}
 }
 
+type WaitlistRequest struct {
+	Email string `json:"email"`
+	Name  string `json:"name,omitempty"`
+}
+
 // AddToWaitlist godoc
 // @Summary     Join the waitlist
 // @Tags        Waitlist
 // @Accept      json
 // @Produce     json
-// @Param       body body object{email=string,name=string} true "Email and optional name"
+// @Param       body body WaitlistRequest true "Email and optional name"
 // @Success     201 {object} map[string]interface{}
 // @Failure     409 {object} map[string]interface{}
 // @Router      /waitlist [post]
 func (h *WaitlistHandler) AddToWaitlist(c *fiber.Ctx) error {
-	var req struct {
-		Email string `json:"email"`
-		Name  string `json:"name"`
-	}
+	var req WaitlistRequest
 	if err := c.BodyParser(&req); err != nil || req.Email == "" {
 		return c.Status(400).JSON(fiber.Map{"error": "email is required"})
 	}
