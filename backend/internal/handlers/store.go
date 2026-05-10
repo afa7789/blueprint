@@ -36,6 +36,15 @@ func NewStoreHandler(
 
 // ---- Public ----
 
+// ListProducts godoc
+// @Summary     List active products
+// @Tags        Store
+// @Produce     json
+// @Param       category_id query string false "Filter by category"
+// @Param       page query int false "Page number" default(1)
+// @Param       limit query int false "Items per page" default(20)
+// @Success     200 {object} map[string]interface{}
+// @Router      /products [get]
 func (h *StoreHandler) ListProducts(c *fiber.Ctx) error {
 	_, limit, offset := paginate(c)
 	var categoryID *string
@@ -49,6 +58,14 @@ func (h *StoreHandler) ListProducts(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": products, "total": total})
 }
 
+// GetProduct godoc
+// @Summary     Get a product by ID
+// @Tags        Store
+// @Produce     json
+// @Param       id path string true "Product ID"
+// @Success     200 {object} domain.Product
+// @Failure     404 {object} map[string]interface{}
+// @Router      /products/{id} [get]
 func (h *StoreHandler) GetProduct(c *fiber.Ctx) error {
 	p, err := h.products.FindByID(c.Context(), c.Params("id"))
 	if err != nil {
@@ -57,6 +74,12 @@ func (h *StoreHandler) GetProduct(c *fiber.Ctx) error {
 	return c.JSON(p)
 }
 
+// ListCategories godoc
+// @Summary     List product categories
+// @Tags        Store
+// @Produce     json
+// @Success     200 {array} domain.Category
+// @Router      /categories [get]
 func (h *StoreHandler) ListCategories(c *fiber.Ctx) error {
 	cats, err := h.categories.List(c.Context())
 	if err != nil {
@@ -80,6 +103,16 @@ type createOrderRequest struct {
 	CouponCode      string                 `json:"coupon_code"`
 }
 
+// CreateOrder godoc
+// @Summary     Create a new order
+// @Tags        Store
+// @Accept      json
+// @Produce     json
+// @Param       body body createOrderRequest true "Order details"
+// @Success     201 {object} domain.Order
+// @Failure     400 {object} map[string]interface{}
+// @Security    BearerAuth
+// @Router      /orders [post]
 func (h *StoreHandler) CreateOrder(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(string)
 	if !ok || userID == "" {
@@ -177,6 +210,13 @@ func (h *StoreHandler) CreateOrder(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(order)
 }
 
+// ListMyOrders godoc
+// @Summary     List current user's orders
+// @Tags        Store
+// @Produce     json
+// @Success     200 {object} map[string]interface{}
+// @Security    BearerAuth
+// @Router      /orders/me [get]
 func (h *StoreHandler) ListMyOrders(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(string)
 	if !ok || userID == "" {
@@ -192,6 +232,12 @@ func (h *StoreHandler) ListMyOrders(c *fiber.Ctx) error {
 
 // ---- Admin ----
 
+// AdminListProducts godoc
+// @Summary     List all products (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/products [get]
 func (h *StoreHandler) AdminListProducts(c *fiber.Ctx) error {
 	_, limit, offset := paginate(c)
 	var categoryID *string
@@ -207,6 +253,12 @@ func (h *StoreHandler) AdminListProducts(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": products, "total": total})
 }
 
+// AdminListCategories godoc
+// @Summary     List all categories (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/categories [get]
 func (h *StoreHandler) AdminListCategories(c *fiber.Ctx) error {
 	categories, err := h.categories.List(c.Context())
 	if err != nil {
@@ -216,6 +268,13 @@ func (h *StoreHandler) AdminListCategories(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": categories})
 }
 
+// AdminCreateProduct godoc
+// @Summary     Create a product (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/products [post]
 func (h *StoreHandler) AdminCreateProduct(c *fiber.Ctx) error {
 	p := &domain.Product{}
 	if err := c.BodyParser(p); err != nil {
@@ -227,6 +286,13 @@ func (h *StoreHandler) AdminCreateProduct(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(p)
 }
 
+// AdminUpdateProduct godoc
+// @Summary     Update a product (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/products/{id} [put]
 func (h *StoreHandler) AdminUpdateProduct(c *fiber.Ctx) error {
 	existing, err := h.products.FindByID(c.Context(), c.Params("id"))
 	if err != nil {
@@ -242,6 +308,11 @@ func (h *StoreHandler) AdminUpdateProduct(c *fiber.Ctx) error {
 	return c.JSON(existing)
 }
 
+// AdminDeleteProduct godoc
+// @Summary     Delete a product (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/products/{id} [delete]
 func (h *StoreHandler) AdminDeleteProduct(c *fiber.Ctx) error {
 	if err := h.products.Delete(c.Context(), c.Params("id")); err != nil {
 		return err
@@ -249,6 +320,13 @@ func (h *StoreHandler) AdminDeleteProduct(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// AdminCreateCategory godoc
+// @Summary     Create a category (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/categories [post]
 func (h *StoreHandler) AdminCreateCategory(c *fiber.Ctx) error {
 	cat := &domain.Category{}
 	if err := c.BodyParser(cat); err != nil {
@@ -260,6 +338,13 @@ func (h *StoreHandler) AdminCreateCategory(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(cat)
 }
 
+// AdminUpdateCategory godoc
+// @Summary     Update a category (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/categories/{id} [put]
 func (h *StoreHandler) AdminUpdateCategory(c *fiber.Ctx) error {
 	cat := &domain.Category{}
 	if err := c.BodyParser(cat); err != nil {
@@ -272,6 +357,11 @@ func (h *StoreHandler) AdminUpdateCategory(c *fiber.Ctx) error {
 	return c.JSON(cat)
 }
 
+// AdminDeleteCategory godoc
+// @Summary     Delete a category (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/categories/{id} [delete]
 func (h *StoreHandler) AdminDeleteCategory(c *fiber.Ctx) error {
 	if err := h.categories.Delete(c.Context(), c.Params("id")); err != nil {
 		return err
@@ -279,6 +369,12 @@ func (h *StoreHandler) AdminDeleteCategory(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// AdminListOrders godoc
+// @Summary     List all orders (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/orders [get]
 func (h *StoreHandler) AdminListOrders(c *fiber.Ctx) error {
 	status := c.Query("status")
 	orders, err := h.orders.ListByStatus(c.Context(), status)
@@ -288,6 +384,12 @@ func (h *StoreHandler) AdminListOrders(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": orders})
 }
 
+// AdminUpdateOrderStatus godoc
+// @Summary     Update order status (admin)
+// @Tags        Admin
+// @Accept      json
+// @Security    BearerAuth
+// @Router      /admin/orders/{id}/status [put]
 func (h *StoreHandler) AdminUpdateOrderStatus(c *fiber.Ctx) error {
 	var body struct {
 		Status string `json:"status"`

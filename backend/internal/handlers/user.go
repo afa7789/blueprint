@@ -37,6 +37,13 @@ type profileResponse struct {
 	StripeCustomerID *string         `json:"stripe_customer_id,omitempty"`
 }
 
+// GetProfile godoc
+// @Summary     Get user profile
+// @Tags        User
+// @Produce     json
+// @Success     200 {object} profileResponse
+// @Security    BearerAuth
+// @Router      /user/profile [get]
 func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	userID, _ := c.Locals("user_id").(string)
 	u, err := h.users.FindByID(c.Context(), userID)
@@ -63,6 +70,14 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
+// UpdateProfile godoc
+// @Summary     Update user profile
+// @Tags        User
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} map[string]interface{}
+// @Security    BearerAuth
+// @Router      /user/profile [put]
 func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	userID, _ := c.Locals("user_id").(string)
 
@@ -124,6 +139,13 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
+// ChangePassword godoc
+// @Summary     Change user password
+// @Tags        User
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /user/password [put]
 func (h *UserHandler) ChangePassword(c *fiber.Ctx) error {
 	userID, _ := c.Locals("user_id").(string)
 
@@ -160,6 +182,12 @@ func (h *UserHandler) ChangePassword(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true})
 }
 
+// CreateSetupIntent godoc
+// @Summary     Create Stripe SetupIntent for saved cards
+// @Tags        User
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /user/saved-cards [post]
 func (h *UserHandler) CreateSetupIntent(c *fiber.Ctx) error {
 	if h.cfg.StripeKey == "" {
 		return c.Status(503).JSON(fiber.Map{"error": "stripe not configured", "env_required": "STRIPE_KEY"})
@@ -196,6 +224,12 @@ func (h *UserHandler) CreateSetupIntent(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"client_secret": si.ClientSecret})
 }
 
+// ListSavedCards godoc
+// @Summary     List saved payment cards
+// @Tags        User
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /user/saved-cards [get]
 func (h *UserHandler) ListSavedCards(c *fiber.Ctx) error {
 	if h.cfg.StripeKey == "" {
 		return c.Status(503).JSON(fiber.Map{"error": "stripe not configured", "env_required": "STRIPE_KEY"})
@@ -246,6 +280,12 @@ func (h *UserHandler) ListSavedCards(c *fiber.Ctx) error {
 	return c.JSON(cards)
 }
 
+// DeleteSavedCard godoc
+// @Summary     Delete a saved payment card
+// @Tags        User
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /user/saved-cards/{id} [delete]
 func (h *UserHandler) DeleteSavedCard(c *fiber.Ctx) error {
 	if h.cfg.StripeKey == "" {
 		return c.Status(503).JSON(fiber.Map{"error": "stripe not configured", "env_required": "STRIPE_KEY"})

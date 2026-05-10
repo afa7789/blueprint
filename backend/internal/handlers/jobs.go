@@ -171,7 +171,11 @@ func (h *JobsHandler) unscheduleJob(jobID string) {
 // ---- HTTP handlers ----
 
 // ListJobs godoc
-// GET /admin/jobs
+// @Summary     List all cron jobs (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/jobs [get]
 func (h *JobsHandler) ListJobs(c *fiber.Ctx) error {
 	jobs, err := h.jobs.List(c.Context())
 	if err != nil {
@@ -184,7 +188,12 @@ func (h *JobsHandler) ListJobs(c *fiber.Ctx) error {
 }
 
 // CreateJob godoc
-// POST /admin/jobs
+// @Summary     Create a cron job (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/jobs [post]
 func (h *JobsHandler) CreateJob(c *fiber.Ctx) error {
 	var req struct {
 		Name     string `json:"name"`
@@ -227,7 +236,12 @@ func (h *JobsHandler) CreateJob(c *fiber.Ctx) error {
 }
 
 // UpdateJob godoc
-// PUT /admin/jobs/:id
+// @Summary     Update a cron job (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/jobs/{id} [put]
 func (h *JobsHandler) UpdateJob(c *fiber.Ctx) error {
 	id := c.Params("id")
 	job, err := h.jobs.FindByID(c.Context(), id)
@@ -285,7 +299,11 @@ func (h *JobsHandler) UpdateJob(c *fiber.Ctx) error {
 }
 
 // PauseJob godoc
-// PUT /admin/jobs/:id/pause
+// @Summary     Pause a cron job (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/jobs/{id}/pause [put]
 func (h *JobsHandler) PauseJob(c *fiber.Ctx) error {
 	id := c.Params("id")
 	job, err := h.jobs.FindByID(c.Context(), id)
@@ -303,7 +321,11 @@ func (h *JobsHandler) PauseJob(c *fiber.Ctx) error {
 }
 
 // ResumeJob godoc
-// PUT /admin/jobs/:id/resume
+// @Summary     Resume a cron job (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/jobs/{id}/resume [put]
 func (h *JobsHandler) ResumeJob(c *fiber.Ctx) error {
 	id := c.Params("id")
 	job, err := h.jobs.FindByID(c.Context(), id)
@@ -323,7 +345,11 @@ func (h *JobsHandler) ResumeJob(c *fiber.Ctx) error {
 }
 
 // RunNow godoc
-// POST /admin/jobs/:id/run
+// @Summary     Trigger a job immediately (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/jobs/{id}/run [post]
 func (h *JobsHandler) RunNow(c *fiber.Ctx) error {
 	id := c.Params("id")
 	job, err := h.jobs.FindByID(c.Context(), id)
@@ -341,7 +367,11 @@ func (h *JobsHandler) RunNow(c *fiber.Ctx) error {
 }
 
 // ListExecutions godoc
-// GET /admin/jobs/:id/executions?page=1&limit=20
+// @Summary     List job execution history (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/jobs/{id}/executions [get]
 func (h *JobsHandler) ListExecutions(c *fiber.Ctx) error {
 	id := c.Params("id")
 	page, limit, offset := paginate(c)
@@ -359,7 +389,11 @@ func (h *JobsHandler) ListExecutions(c *fiber.Ctx) error {
 }
 
 // RetryExecution godoc
-// POST /admin/jobs/:id/executions/:eid/retry
+// @Summary     Retry a failed job execution (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/jobs/{id}/executions/{eid}/retry [post]
 func (h *JobsHandler) RetryExecution(c *fiber.Ctx) error {
 	jobID := c.Params("id")
 	eid := c.Params("eid")
@@ -384,7 +418,10 @@ func (h *JobsHandler) RetryExecution(c *fiber.Ctx) error {
 }
 
 // DeleteJob godoc
-// DELETE /admin/jobs/:id
+// @Summary     Delete a cron job (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/jobs/{id} [delete]
 func (h *JobsHandler) DeleteJob(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -397,7 +434,11 @@ func (h *JobsHandler) DeleteJob(c *fiber.Ctx) error {
 }
 
 // ListHandlers godoc
-// GET /admin/jobs/handlers
+// @Summary     List registered job handlers (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/jobs/handlers [get]
 func (h *JobsHandler) ListHandlers(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"handlers": h.registry.List()})
 }

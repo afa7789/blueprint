@@ -4,7 +4,7 @@
 	fmt fmt-backend fmt-frontend \
 	typecheck tidy vet \
 	deadcode deadcode-backend deadcode-frontend \
-	check ci clean help
+	vulncheck swagger sqlc e2e check ci clean help
 
 # === Local Development (tudo via Docker, 1 porta) ===
 
@@ -117,6 +117,24 @@ fmt-frontend:
 vet:
 	cd backend && go vet ./...
 
+## Vulnerability scan (Go dependencies)
+vulncheck:
+	cd backend && go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+## Generate OpenAPI/Swagger docs
+swagger:
+	cd backend && go run github.com/swaggo/swag/cmd/swag@latest init \
+		--generalInfo cmd/server/main.go \
+		--output docs/swagger \
+		--parseDependency --parseDepth 2
+
+## Generate SQL code from queries
+sqlc:
+	cd backend && sqlc generate
+
+e2e:
+	cd frontend && bun run e2e
+
 tidy:
 	cd backend && go mod tidy
 
@@ -141,7 +159,7 @@ deadcode-frontend:
 	cd frontend && bunx --bun depcheck || true
 
 ## Aggregate checks used locally and in CI
-check: fmt-backend lint test
+check: fmt-backend lint sqlc test
 
 ci: lint test
 	@echo "CI checks passed."

@@ -49,6 +49,16 @@ func NewAdminHandler(
 // Upload handles generic admin file uploads. The frontend sends a multipart
 // form with a `file` field and an optional `prefix` (subfolder) field. Only
 // a fixed allowlist of prefixes is accepted.
+// Upload godoc
+// @Summary     Upload a file (admin)
+// @Tags        Admin
+// @Accept      multipart/form-data
+// @Produce     json
+// @Param       file formData file true "File to upload"
+// @Param       prefix formData string false "Upload prefix (uploads/covers/banners/linktree/brand-kit/products)"
+// @Success     200 {object} map[string]interface{}
+// @Security    BearerAuth
+// @Router      /admin/upload [post]
 func (h *AdminHandler) Upload(c *fiber.Ctx) error {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -95,6 +105,12 @@ func paginate(c *fiber.Ctx) (page, limit, offset int) {
 
 // ---- Users ----
 
+// ListUsers godoc
+// @Summary     List all users (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/users [get]
 func (h *AdminHandler) ListUsers(c *fiber.Ctx) error {
 	page, limit, offset := paginate(c)
 	users, total, err := h.users.List(c.Context(), offset, limit)
@@ -104,6 +120,13 @@ func (h *AdminHandler) ListUsers(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": users, "total": total, "page": page, "limit": limit})
 }
 
+// UpdateUserRole godoc
+// @Summary     Update user role (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/users/{id}/role [put]
 func (h *AdminHandler) UpdateUserRole(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var body struct {
@@ -128,6 +151,11 @@ func (h *AdminHandler) UpdateUserRole(c *fiber.Ctx) error {
 	return c.JSON(user)
 }
 
+// DeleteUser godoc
+// @Summary     Delete a user (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/users/{id} [delete]
 func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if err := h.users.Delete(c.Context(), id); err != nil {
@@ -138,6 +166,12 @@ func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error {
 
 // ---- Banners ----
 
+// ListBanners godoc
+// @Summary     List all banners (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/banners [get]
 func (h *AdminHandler) ListBanners(c *fiber.Ctx) error {
 	banners, err := h.banners.List(c.Context(), false)
 	if err != nil {
@@ -146,6 +180,13 @@ func (h *AdminHandler) ListBanners(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": banners})
 }
 
+// CreateBanner godoc
+// @Summary     Create a banner (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/banners [post]
 func (h *AdminHandler) CreateBanner(c *fiber.Ctx) error {
 	var b domain.Banner
 	if err := c.BodyParser(&b); err != nil {
@@ -157,6 +198,13 @@ func (h *AdminHandler) CreateBanner(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(b)
 }
 
+// UpdateBanner godoc
+// @Summary     Update a banner (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/banners/{id} [put]
 func (h *AdminHandler) UpdateBanner(c *fiber.Ctx) error {
 	var b domain.Banner
 	if err := c.BodyParser(&b); err != nil {
@@ -169,6 +217,11 @@ func (h *AdminHandler) UpdateBanner(c *fiber.Ctx) error {
 	return c.JSON(b)
 }
 
+// DeleteBanner godoc
+// @Summary     Delete a banner (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/banners/{id} [delete]
 func (h *AdminHandler) DeleteBanner(c *fiber.Ctx) error {
 	if err := h.banners.Delete(c.Context(), c.Params("id")); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
@@ -178,6 +231,12 @@ func (h *AdminHandler) DeleteBanner(c *fiber.Ctx) error {
 
 // ---- Linktree ----
 
+// ListLinktree godoc
+// @Summary     List linktree items (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/linktree [get]
 func (h *AdminHandler) ListLinktree(c *fiber.Ctx) error {
 	items, err := h.linktree.List(c.Context(), false)
 	if err != nil {
@@ -186,6 +245,13 @@ func (h *AdminHandler) ListLinktree(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": items})
 }
 
+// CreateLinktreeItem godoc
+// @Summary     Create a linktree item (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/linktree [post]
 func (h *AdminHandler) CreateLinktreeItem(c *fiber.Ctx) error {
 	var item domain.LinktreeItem
 	if err := c.BodyParser(&item); err != nil {
@@ -197,6 +263,13 @@ func (h *AdminHandler) CreateLinktreeItem(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(item)
 }
 
+// UpdateLinktreeItem godoc
+// @Summary     Update a linktree item (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/linktree/{id} [put]
 func (h *AdminHandler) UpdateLinktreeItem(c *fiber.Ctx) error {
 	var item domain.LinktreeItem
 	if err := c.BodyParser(&item); err != nil {
@@ -209,6 +282,11 @@ func (h *AdminHandler) UpdateLinktreeItem(c *fiber.Ctx) error {
 	return c.JSON(item)
 }
 
+// DeleteLinktreeItem godoc
+// @Summary     Delete a linktree item (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/linktree/{id} [delete]
 func (h *AdminHandler) DeleteLinktreeItem(c *fiber.Ctx) error {
 	if err := h.linktree.Delete(c.Context(), c.Params("id")); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
@@ -216,6 +294,12 @@ func (h *AdminHandler) DeleteLinktreeItem(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// ReorderLinktree godoc
+// @Summary     Reorder linktree items (admin)
+// @Tags        Admin
+// @Accept      json
+// @Security    BearerAuth
+// @Router      /admin/linktree/reorder [put]
 func (h *AdminHandler) ReorderLinktree(c *fiber.Ctx) error {
 	var items []domain.LinktreeItem
 	if err := c.BodyParser(&items); err != nil {
@@ -229,6 +313,12 @@ func (h *AdminHandler) ReorderLinktree(c *fiber.Ctx) error {
 
 // ---- Brand Kit ----
 
+// GetBrandKit godoc
+// @Summary     Get brand kit (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/brand-kit [get]
 func (h *AdminHandler) GetBrandKit(c *fiber.Ctx) error {
 	bk, err := h.brandKit.Get(c.Context())
 	if err != nil {
@@ -237,6 +327,13 @@ func (h *AdminHandler) GetBrandKit(c *fiber.Ctx) error {
 	return c.JSON(bk)
 }
 
+// UpsertBrandKit godoc
+// @Summary     Update brand kit (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/brand-kit [put]
 func (h *AdminHandler) UpsertBrandKit(c *fiber.Ctx) error {
 	var bk domain.BrandKit
 	if err := c.BodyParser(&bk); err != nil {
@@ -250,6 +347,12 @@ func (h *AdminHandler) UpsertBrandKit(c *fiber.Ctx) error {
 
 // ---- Email Groups ----
 
+// ListEmailGroups godoc
+// @Summary     List email groups (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/email-groups [get]
 func (h *AdminHandler) ListEmailGroups(c *fiber.Ctx) error {
 	groups, err := h.emailGroups.List(c.Context())
 	if err != nil {
@@ -258,6 +361,13 @@ func (h *AdminHandler) ListEmailGroups(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": groups})
 }
 
+// CreateEmailGroup godoc
+// @Summary     Create an email group (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/email-groups [post]
 func (h *AdminHandler) CreateEmailGroup(c *fiber.Ctx) error {
 	var g domain.EmailGroup
 	if err := c.BodyParser(&g); err != nil {
@@ -272,6 +382,11 @@ func (h *AdminHandler) CreateEmailGroup(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(g)
 }
 
+// DeleteEmailGroup godoc
+// @Summary     Delete an email group (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/email-groups/{id} [delete]
 func (h *AdminHandler) DeleteEmailGroup(c *fiber.Ctx) error {
 	if err := h.emailGroups.Delete(c.Context(), c.Params("id")); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
@@ -281,6 +396,12 @@ func (h *AdminHandler) DeleteEmailGroup(c *fiber.Ctx) error {
 
 // ---- Email Subscriptions ----
 
+// ListSubscribers godoc
+// @Summary     List subscribers in a group (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/email-groups/{id}/subscribers [get]
 func (h *AdminHandler) ListSubscribers(c *fiber.Ctx) error {
 	subs, err := h.emailSubs.ListByGroup(c.Context(), c.Params("id"))
 	if err != nil {
@@ -289,6 +410,13 @@ func (h *AdminHandler) ListSubscribers(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": subs})
 }
 
+// AddEmailSubscription godoc
+// @Summary     Add an email subscription (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/email-subscriptions [post]
 func (h *AdminHandler) AddEmailSubscription(c *fiber.Ctx) error {
 	var sub domain.EmailSubscription
 	if err := c.BodyParser(&sub); err != nil {
@@ -300,6 +428,11 @@ func (h *AdminHandler) AddEmailSubscription(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(sub)
 }
 
+// DeactivateEmailSubscription godoc
+// @Summary     Deactivate an email subscription (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/email-subscriptions/{email}/deactivate [put]
 func (h *AdminHandler) DeactivateEmailSubscription(c *fiber.Ctx) error {
 	email := c.Params("email")
 	if err := h.emailSubs.Deactivate(c.Context(), email); err != nil {
@@ -310,6 +443,12 @@ func (h *AdminHandler) DeactivateEmailSubscription(c *fiber.Ctx) error {
 
 // ---- User Groups ----
 
+// ListUserGroups godoc
+// @Summary     List user groups (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/user-groups [get]
 func (h *AdminHandler) ListUserGroups(c *fiber.Ctx) error {
 	groups, err := h.userGroups.List(c.Context())
 	if err != nil {
@@ -318,6 +457,13 @@ func (h *AdminHandler) ListUserGroups(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": groups})
 }
 
+// CreateUserGroup godoc
+// @Summary     Create a user group (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/user-groups [post]
 func (h *AdminHandler) CreateUserGroup(c *fiber.Ctx) error {
 	var g domain.UserGroup
 	if err := c.BodyParser(&g); err != nil {
@@ -329,6 +475,11 @@ func (h *AdminHandler) CreateUserGroup(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(g)
 }
 
+// DeleteUserGroup godoc
+// @Summary     Delete a user group (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/user-groups/{id} [delete]
 func (h *AdminHandler) DeleteUserGroup(c *fiber.Ctx) error {
 	if err := h.userGroups.Delete(c.Context(), c.Params("id")); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())

@@ -1,0 +1,1608 @@
+basePath: /api/v1
+definitions:
+  github_com_afa_blueprint_backend_internal_domain.BlogPost:
+    properties:
+      author_id:
+        type: string
+      content:
+        type: string
+      cover_image:
+        type: string
+      created_at:
+        type: string
+      excerpt:
+        type: string
+      id:
+        type: string
+      metadata:
+        type: string
+      published_at:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  github_com_afa_blueprint_backend_internal_domain.Category:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: string
+      slug:
+        type: string
+    type: object
+  github_com_afa_blueprint_backend_internal_domain.FeatureFlag:
+    properties:
+      enabled:
+        type: boolean
+      id:
+        type: integer
+      key:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_afa_blueprint_backend_internal_domain.LegalPage:
+    properties:
+      content:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      slug:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_afa_blueprint_backend_internal_domain.Order:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      payment_id:
+        type: string
+      payment_method:
+        type: string
+      receipt_url:
+        type: string
+      shipping_address:
+        type: string
+      status:
+        type: string
+      total:
+        type: number
+      tracking_code:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  github_com_afa_blueprint_backend_internal_domain.Product:
+    properties:
+      category_id:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      images:
+        type: string
+      is_active:
+        type: boolean
+      is_pre_sale:
+        type: boolean
+      name:
+        type: string
+      pre_sale_available_at:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  github_com_afa_blueprint_backend_internal_domain.WaitlistEntry:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      source:
+        type: string
+    type: object
+  internal_handlers.SecurityUpdateRequest:
+    properties:
+      value:
+        type: string
+    type: object
+  internal_handlers.WaitlistRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_handlers.createOrderItem:
+    properties:
+      product_id:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  internal_handlers.createOrderRequest:
+    properties:
+      coupon_code:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/internal_handlers.createOrderItem'
+        type: array
+      payment_method:
+        type: string
+      shipping:
+        additionalProperties: true
+        type: object
+      shipping_address:
+        additionalProperties: true
+        type: object
+    type: object
+  internal_handlers.createPaymentRequest:
+    properties:
+      order_id:
+        type: string
+    type: object
+  internal_handlers.profileResponse:
+    properties:
+      address:
+        items:
+          type: integer
+        type: array
+      avatar_url:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      id:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      role:
+        type: string
+      stripe_customer_id:
+        type: string
+    type: object
+  internal_handlers.userResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: Blueprint Maintainer
+    url: https://github.com/afa/blueprint
+  description: Full-stack starter kit with Go + Fiber backend and Vue 3 frontend.
+  license:
+    name: MIT
+    url: https://github.com/afa/blueprint/blob/main/LICENSE
+  termsOfService: https://github.com/afa/blueprint
+  title: Blueprint API
+  version: 1.0.0
+paths:
+  /admin/banners:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List all banners (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a banner (admin)
+      tags:
+      - Admin
+  /admin/banners/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a banner (admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update a banner (admin)
+      tags:
+      - Admin
+  /admin/blog:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List all blog posts (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a blog post (admin)
+      tags:
+      - Admin
+  /admin/blog/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a blog post (admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update a blog post (admin)
+      tags:
+      - Admin
+  /admin/blog/{id}/cover:
+    post:
+      consumes:
+      - multipart/form-data
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Upload cover image for a blog post (admin)
+      tags:
+      - Admin
+  /admin/blog/ai-generate:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Generate blog post with AI (admin)
+      tags:
+      - Admin
+  /admin/brand-kit:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Get brand kit (admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update brand kit (admin)
+      tags:
+      - Admin
+  /admin/categories:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List all categories (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a category (admin)
+      tags:
+      - Admin
+  /admin/categories/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a category (admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update a category (admin)
+      tags:
+      - Admin
+  /admin/config/env:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List environment variable status (admin)
+      tags:
+      - Admin
+  /admin/config/export:
+    get:
+      produces:
+      - text/plain
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Export configuration as .env file (admin)
+      tags:
+      - Admin
+  /admin/config/import:
+    post:
+      consumes:
+      - text/plain
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Import configuration from .env format (admin)
+      tags:
+      - Admin
+  /admin/coupons:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List all coupons (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a coupon (admin)
+      tags:
+      - Admin
+  /admin/coupons/{id}:
+    delete:
+      parameters:
+      - description: Coupon ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a coupon (admin)
+      tags:
+      - Admin
+  /admin/email-groups:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List email groups (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create an email group (admin)
+      tags:
+      - Admin
+  /admin/email-groups/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete an email group (admin)
+      tags:
+      - Admin
+  /admin/email-groups/{id}/subscribers:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List subscribers in a group (admin)
+      tags:
+      - Admin
+  /admin/email-subscriptions:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Add an email subscription (admin)
+      tags:
+      - Admin
+  /admin/email-subscriptions/{email}/deactivate:
+    put:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Deactivate an email subscription (admin)
+      tags:
+      - Admin
+  /admin/features/{key}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Feature flag key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Flag state
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            enabled:
+              type: boolean
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Toggle a feature flag
+      tags:
+      - Admin
+  /admin/jobs:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List all cron jobs (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a cron job (admin)
+      tags:
+      - Admin
+  /admin/jobs/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a cron job (admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update a cron job (admin)
+      tags:
+      - Admin
+  /admin/jobs/{id}/executions:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List job execution history (admin)
+      tags:
+      - Admin
+  /admin/jobs/{id}/executions/{eid}/retry:
+    post:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Retry a failed job execution (admin)
+      tags:
+      - Admin
+  /admin/jobs/{id}/pause:
+    put:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Pause a cron job (admin)
+      tags:
+      - Admin
+  /admin/jobs/{id}/resume:
+    put:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Resume a cron job (admin)
+      tags:
+      - Admin
+  /admin/jobs/{id}/run:
+    post:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Trigger a job immediately (admin)
+      tags:
+      - Admin
+  /admin/jobs/handlers:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List registered job handlers (admin)
+      tags:
+      - Admin
+  /admin/legal:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List all legal pages (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a legal page (admin)
+      tags:
+      - Admin
+  /admin/legal/{id}:
+    delete:
+      parameters:
+      - description: Legal page ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a legal page (admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Legal page ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_afa_blueprint_backend_internal_domain.LegalPage'
+      security:
+      - BearerAuth: []
+      summary: Update a legal page (admin)
+      tags:
+      - Admin
+  /admin/linktree:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List linktree items (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a linktree item (admin)
+      tags:
+      - Admin
+  /admin/linktree/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a linktree item (admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update a linktree item (admin)
+      tags:
+      - Admin
+  /admin/linktree/reorder:
+    put:
+      consumes:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Reorder linktree items (admin)
+      tags:
+      - Admin
+  /admin/orders:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List all orders (admin)
+      tags:
+      - Admin
+  /admin/orders/{id}/approve-pix:
+    put:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Approve a PIX payment (admin)
+      tags:
+      - Admin
+  /admin/orders/{id}/status:
+    put:
+      consumes:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update order status (admin)
+      tags:
+      - Admin
+  /admin/pix-config:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Get PIX configuration (admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update PIX configuration (admin)
+      tags:
+      - Admin
+  /admin/products:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List all products (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a product (admin)
+      tags:
+      - Admin
+  /admin/products/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a product (admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update a product (admin)
+      tags:
+      - Admin
+  /admin/security:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List security settings (admin)
+      tags:
+      - Admin
+  /admin/security/{key}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Setting key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: New value
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.SecurityUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a security setting (admin)
+      tags:
+      - Admin
+  /admin/tools:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List admin tools (admin)
+      tags:
+      - Admin
+  /admin/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Upload prefix (uploads/covers/banners/linktree/brand-kit/products)
+        in: formData
+        name: prefix
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upload a file (admin)
+      tags:
+      - Admin
+  /admin/user-groups:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List user groups (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a user group (admin)
+      tags:
+      - Admin
+  /admin/user-groups/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a user group (admin)
+      tags:
+      - Admin
+  /admin/users:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List all users (admin)
+      tags:
+      - Admin
+  /admin/users/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a user (admin)
+      tags:
+      - Admin
+  /admin/users/{id}/role:
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Update user role (admin)
+      tags:
+      - Admin
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Registered email
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Request password reset email
+      tags:
+      - Auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Login credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login with email and password
+      tags:
+      - Auth
+  /auth/logout:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Logout and clear auth cookies
+      tags:
+      - Auth
+  /auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handlers.userResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Refresh access token
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            name:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a new user
+      tags:
+      - Auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Reset token and new password
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            password:
+              type: string
+            token:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Reset password with token
+      tags:
+      - Auth
+  /blog:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List published blog posts
+      tags:
+      - Blog
+  /blog/{slug}:
+    get:
+      parameters:
+      - description: Post slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_afa_blueprint_backend_internal_domain.BlogPost'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a blog post by slug
+      tags:
+      - Blog
+  /blog/atom.xml:
+    get:
+      produces:
+      - text/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Atom feed of published posts
+      tags:
+      - Blog
+  /blog/rss.xml:
+    get:
+      produces:
+      - text/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: RSS feed of published posts
+      tags:
+      - Blog
+  /categories:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_afa_blueprint_backend_internal_domain.Category'
+            type: array
+      summary: List product categories
+      tags:
+      - Store
+  /coupons/validate:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Coupon code and subtotal
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            code:
+              type: string
+            subtotal:
+              type: number
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Validate a coupon code
+      tags:
+      - Coupons
+  /features:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_afa_blueprint_backend_internal_domain.FeatureFlag'
+            type: array
+      summary: List all feature flags
+      tags:
+      - Features
+  /legal:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              properties:
+                slug:
+                  type: string
+                title:
+                  type: string
+              type: object
+            type: array
+      summary: List active legal pages
+      tags:
+      - Legal
+  /legal/{slug}:
+    get:
+      parameters:
+      - description: Page slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_afa_blueprint_backend_internal_domain.LegalPage'
+      summary: Get a legal page by slug
+      tags:
+      - Legal
+  /orders:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.createOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_afa_blueprint_backend_internal_domain.Order'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new order
+      tags:
+      - Store
+  /orders/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List current user's orders
+      tags:
+      - Store
+  /payments/pix:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.createPaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a PIX payment
+      tags:
+      - Payments
+  /payments/pix/{order_id}/receipt:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Order ID
+        in: path
+        name: order_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Upload PIX payment receipt
+      tags:
+      - Payments
+  /payments/stripe:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.createPaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a Stripe payment intent
+      tags:
+      - Payments
+  /payments/stripe/webhook:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Handle Stripe webhook events
+      tags:
+      - Payments
+  /products:
+    get:
+      parameters:
+      - description: Filter by category
+        in: query
+        name: category_id
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List active products
+      tags:
+      - Store
+  /products/{id}:
+    get:
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_afa_blueprint_backend_internal_domain.Product'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a product by ID
+      tags:
+      - Store
+  /user/password:
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Change user password
+      tags:
+      - User
+  /user/profile:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handlers.profileResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - User
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - User
+  /user/saved-cards:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List saved payment cards
+      tags:
+      - User
+    post:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create Stripe SetupIntent for saved cards
+      tags:
+      - User
+  /user/saved-cards/{id}:
+    delete:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a saved payment card
+      tags:
+      - User
+  /waitlist:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_afa_blueprint_backend_internal_domain.WaitlistEntry'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List waitlist entries (admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Email and optional name
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.WaitlistRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Join the waitlist
+      tags:
+      - Waitlist
+securityDefinitions:
+  BearerAuth:
+    description: JWT token (Bearer <token>)
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

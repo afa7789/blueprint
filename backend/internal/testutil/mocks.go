@@ -465,6 +465,18 @@ func (m *MockCouponRepo) List(_ context.Context) ([]domain.Coupon, error) {
 	return result, nil
 }
 
+func (m *MockCouponRepo) Delete(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for code, c := range m.coupons {
+		if c.ID == id {
+			delete(m.coupons, code)
+			return nil
+		}
+	}
+	return errors.New("not found")
+}
+
 // ---- MockBlogRepo ----
 
 type MockBlogRepo struct {

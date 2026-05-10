@@ -11,10 +11,35 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.25.10"
   BUN_VERSION: "1.2.21"
 
 jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: govulncheck
+        working-directory: backend
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -39,6 +64,8 @@ jobs:
           cd backend
           go mod download
           go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.2
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
+          sqlc diff || (echo "sqlc generated code is out of date. Run 'make sqlc' to regenerate." && exit 1)
           go vet ./...
           golangci-lint run ./...
           go test ./... -race -count=1
@@ -51,3 +78,61 @@ jobs:
           bun run vue-tsc --noEmit
           bun run test
           bun run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: |
+          bun install --frozen-lockfile
+          bunx --bun playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        working-directory: frontend
+        run: bunx --bun playwright test --config playwright.config.ts
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+
+      - name: Dump container logs
+        if: failure()
+        run: docker compose logs --no-color --tail=200
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
+
+  release:
+    needs: [security, build, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install semantic-release
+        run: npm install -g semantic-release @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/github
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release

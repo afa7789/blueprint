@@ -106,6 +106,12 @@ func slugify(s string) string {
 
 // ---- Public routes ----
 
+// ListPublished godoc
+// @Summary     List published blog posts
+// @Tags        Blog
+// @Produce     json
+// @Success     200 {object} map[string]interface{}
+// @Router      /blog [get]
 func (h *BlogHandler) ListPublished(c *fiber.Ctx) error {
 	page, limit, offset := paginate(c)
 	posts, total, err := h.blog.List(c.Context(), "published", offset, limit)
@@ -115,6 +121,14 @@ func (h *BlogHandler) ListPublished(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": posts, "posts": posts, "total": total, "page": page, "limit": limit})
 }
 
+// GetBySlug godoc
+// @Summary     Get a blog post by slug
+// @Tags        Blog
+// @Produce     json
+// @Param       slug path string true "Post slug"
+// @Success     200 {object} domain.BlogPost
+// @Failure     404 {object} map[string]interface{}
+// @Router      /blog/{slug} [get]
 func (h *BlogHandler) GetBySlug(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	post, err := h.blog.FindBySlug(c.Context(), slug)
@@ -127,6 +141,12 @@ func (h *BlogHandler) GetBySlug(c *fiber.Ctx) error {
 	return c.JSON(post)
 }
 
+// RSSFeed godoc
+// @Summary     RSS feed of published posts
+// @Tags        Blog
+// @Produce     xml
+// @Success     200 {string} string
+// @Router      /blog/rss.xml [get]
 func (h *BlogHandler) RSSFeed(c *fiber.Ctx) error {
 	posts, _, err := h.blog.List(c.Context(), "published", 0, 20)
 	if err != nil {
@@ -173,6 +193,12 @@ func (h *BlogHandler) RSSFeed(c *fiber.Ctx) error {
 	return c.SendString(xml.Header + xmlStr)
 }
 
+// AtomFeed godoc
+// @Summary     Atom feed of published posts
+// @Tags        Blog
+// @Produce     xml
+// @Success     200 {string} string
+// @Router      /blog/atom.xml [get]
 func (h *BlogHandler) AtomFeed(c *fiber.Ctx) error {
 	posts, _, err := h.blog.List(c.Context(), "published", 0, 20)
 	if err != nil {
@@ -237,6 +263,12 @@ func (h *BlogHandler) AtomFeed(c *fiber.Ctx) error {
 
 // ---- Admin routes ----
 
+// AdminListPosts godoc
+// @Summary     List all blog posts (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/blog [get]
 func (h *BlogHandler) AdminListPosts(c *fiber.Ctx) error {
 	page, limit, offset := paginate(c)
 	posts, total, err := h.blog.List(c.Context(), "", offset, limit)
@@ -246,6 +278,13 @@ func (h *BlogHandler) AdminListPosts(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": posts, "total": total, "page": page, "limit": limit})
 }
 
+// AdminCreatePost godoc
+// @Summary     Create a blog post (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/blog [post]
 func (h *BlogHandler) AdminCreatePost(c *fiber.Ctx) error {
 	var body struct {
 		Title      string  `json:"title"`
@@ -291,6 +330,13 @@ func (h *BlogHandler) AdminCreatePost(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(post)
 }
 
+// AdminUpdatePost godoc
+// @Summary     Update a blog post (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/blog/{id} [put]
 func (h *BlogHandler) AdminUpdatePost(c *fiber.Ctx) error {
 	id := c.Params("id")
 	post, err := h.blog.FindByID(c.Context(), id)
@@ -336,6 +382,11 @@ func (h *BlogHandler) AdminUpdatePost(c *fiber.Ctx) error {
 	return c.JSON(post)
 }
 
+// AdminDeletePost godoc
+// @Summary     Delete a blog post (admin)
+// @Tags        Admin
+// @Security    BearerAuth
+// @Router      /admin/blog/{id} [delete]
 func (h *BlogHandler) AdminDeletePost(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if err := h.blog.Delete(c.Context(), id); err != nil {
@@ -344,6 +395,13 @@ func (h *BlogHandler) AdminDeletePost(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// AdminUploadCover godoc
+// @Summary     Upload cover image for a blog post (admin)
+// @Tags        Admin
+// @Accept      multipart/form-data
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/blog/{id}/cover [post]
 func (h *BlogHandler) AdminUploadCover(c *fiber.Ctx) error {
 	id := c.Params("id")
 	post, err := h.blog.FindByID(c.Context(), id)
@@ -371,6 +429,14 @@ func (h *BlogHandler) AdminUploadCover(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"cover_image": url})
 }
+
+// AdminAIGenerate godoc
+// @Summary     Generate blog post with AI (admin)
+// @Tags        Admin
+// @Accept      json
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/blog/ai-generate [post]
 func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 	if h.cfg.OpenAIKey == "" {
 		return fiber.NewError(fiber.StatusServiceUnavailable, "OPENAI_KEY is not configured")
@@ -387,50 +453,29 @@ func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 	}
 
 	payload := map[string]interface{}{
-		"model": "gpt-5.4-mini",
-		"reasoning": map[string]interface{}{
-			"effort": "low",
-		},
-		"input": []map[string]interface{}{
+		"model": "gpt-4o-mini",
+		"messages": []map[string]string{
 			{
-				"role": "developer",
-				"content": []map[string]string{
-					{
-						"type": "input_text",
-						"text": "You write polished blog drafts for a SaaS product. Return valid JSON only.",
-					},
-				},
+				"role":    "system",
+				"content": "You write polished blog drafts for a SaaS product. Return valid JSON only.",
 			},
 			{
-				"role": "user",
-				"content": []map[string]string{
-					{
-						"type": "input_text",
-						"text": "Write a blog draft based on this prompt:\n\n" + body.Prompt + "\n\nReturn JSON with title, slug, excerpt, and content. The content should be HTML with headings and paragraphs.",
-					},
-				},
+				"role":    "user",
+				"content": "Write a blog draft based on this prompt:\n\n" + body.Prompt + "\n\nReturn JSON with title, slug, excerpt, and content. The content should be HTML with headings and paragraphs.",
 			},
 		},
-		"text": map[string]interface{}{
-			"format": map[string]interface{}{
-				"type":   "json_schema",
+		"response_format": map[string]interface{}{
+			"type": "json_schema",
+			"json_schema": map[string]interface{}{
 				"name":   "blog_post_draft",
 				"strict": true,
 				"schema": map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"title": map[string]string{
-							"type": "string",
-						},
-						"slug": map[string]string{
-							"type": "string",
-						},
-						"excerpt": map[string]string{
-							"type": "string",
-						},
-						"content": map[string]string{
-							"type": "string",
-						},
+						"title":   map[string]string{"type": "string"},
+						"slug":    map[string]string{"type": "string"},
+						"excerpt": map[string]string{"type": "string"},
+						"content": map[string]string{"type": "string"},
 					},
 					"required":             []string{"title", "slug", "excerpt", "content"},
 					"additionalProperties": false,
@@ -444,7 +489,7 @@ func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	req, err := http.NewRequestWithContext(c.Context(), http.MethodPost, "https://api.openai.com/v1/responses", bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(c.Context(), http.MethodPost, "https://api.openai.com/v1/chat/completions", bytes.NewReader(bodyBytes))
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
@@ -468,31 +513,19 @@ func (h *BlogHandler) AdminAIGenerate(c *fiber.Ctx) error {
 	}
 
 	var response struct {
-		OutputText string `json:"output_text"`
-		Output     []struct {
-			Content []struct {
-				Type string `json:"type"`
-				Text string `json:"text"`
-			} `json:"content"`
-		} `json:"output"`
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
 	}
 	if err := json.Unmarshal(raw, &response); err != nil {
 		return fiber.NewError(fiber.StatusBadGateway, "invalid OpenAI response")
 	}
 
-	text := strings.TrimSpace(response.OutputText)
-	if text == "" {
-		for _, item := range response.Output {
-			for _, content := range item.Content {
-				if content.Type == "output_text" && strings.TrimSpace(content.Text) != "" {
-					text = strings.TrimSpace(content.Text)
-					break
-				}
-			}
-			if text != "" {
-				break
-			}
-		}
+	var text string
+	if len(response.Choices) > 0 {
+		text = strings.TrimSpace(response.Choices[0].Message.Content)
 	}
 	if text == "" {
 		return fiber.NewError(fiber.StatusBadGateway, "empty OpenAI response")

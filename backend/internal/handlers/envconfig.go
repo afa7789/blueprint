@@ -85,8 +85,12 @@ func knownEnvVars() []envEntry {
 	}
 }
 
-// GetEnvStatus returns all known ENV vars with their set/unset status.
-// Secret values are masked.
+// GetEnvStatus godoc
+// @Summary     List environment variable status (admin)
+// @Tags        Admin
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/config/env [get]
 func (h *EnvConfigHandler) GetEnvStatus(c *fiber.Ctx) error {
 	vars := knownEnvVars()
 	for i := range vars {
@@ -103,8 +107,12 @@ func (h *EnvConfigHandler) GetEnvStatus(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": vars})
 }
 
-// ExportEnv exports all DB-configurable settings (security_settings + feature_flags)
-// as a .env-compatible text file.
+// ExportEnv godoc
+// @Summary     Export configuration as .env file (admin)
+// @Tags        Admin
+// @Produce     text/plain
+// @Security    BearerAuth
+// @Router      /admin/config/export [get]
 func (h *EnvConfigHandler) ExportEnv(c *fiber.Ctx) error {
 	var lines []string
 
@@ -168,9 +176,13 @@ func (h *EnvConfigHandler) ExportEnv(c *fiber.Ctx) error {
 	return c.SendString(strings.Join(lines, "\n") + "\n")
 }
 
-// ImportEnv imports settings from a .env-format text body.
-// Only updates DB-backed settings (security_settings + feature_flags).
-// ENV vars are NOT updated (require server restart).
+// ImportEnv godoc
+// @Summary     Import configuration from .env format (admin)
+// @Tags        Admin
+// @Accept      text/plain
+// @Produce     json
+// @Security    BearerAuth
+// @Router      /admin/config/import [post]
 func (h *EnvConfigHandler) ImportEnv(c *fiber.Ctx) error {
 	body := string(c.Body())
 	lines := strings.Split(body, "\n")

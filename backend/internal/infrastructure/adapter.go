@@ -457,6 +457,11 @@ func (r *couponRepo) IncrementUsed(ctx context.Context, id string) error {
 	return err
 }
 
+func (r *couponRepo) Delete(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM coupons WHERE id=$1`, id)
+	return err
+}
+
 func (r *couponRepo) List(ctx context.Context) ([]domain.Coupon, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id,code,discount_type,discount_value,min_purchase,valid_from,valid_until,max_uses,used_count,is_active FROM coupons ORDER BY code`)

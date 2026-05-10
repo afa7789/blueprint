@@ -66,6 +66,7 @@ type CouponRepository interface {
 	Create(ctx context.Context, c *Coupon) error
 	IncrementUsed(ctx context.Context, id string) error
 	List(ctx context.Context) ([]Coupon, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type BlogRepository interface {
