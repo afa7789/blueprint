@@ -69,7 +69,7 @@ func (h *PaymentHandler) CreateStripePayment(c *fiber.Ctx) error {
 	if order.Status != "pending" {
 		return fiber.NewError(fiber.StatusBadRequest, "order is not pending")
 	}
-	if order.UserID != nil && *order.UserID != userID {
+	if order.UserID == nil || *order.UserID != userID {
 		return fiber.NewError(fiber.StatusForbidden, "not your order")
 	}
 

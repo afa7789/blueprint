@@ -53,6 +53,7 @@ func knownEnvVars() []envEntry {
 		// Payments
 		{Key: "STRIPE_KEY", Category: "payments", Description: "Stripe secret key", IsSecret: true},
 		{Key: "STRIPE_WEBHOOK_SECRET", Category: "payments", Description: "Stripe webhook signing secret", IsSecret: true},
+		{Key: "STRIPE_PUBLISHABLE_KEY", Category: "payments", Description: "Stripe publishable key"},
 
 		// Storage
 		{Key: "STORAGE_TYPE", Category: "storage", Description: "Storage backend (local/s3)"},

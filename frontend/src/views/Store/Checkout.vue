@@ -103,6 +103,16 @@
             <p v-if="stripeError" class="error">{{ stripeError }}</p>
 
             <button
+              v-if="stripeInitError"
+              type="button"
+              class="btn btn-secondary"
+              @click="retryStripeInit"
+              data-testid="retry-stripe-btn"
+            >
+              Retry
+            </button>
+            <button
+              v-else
               type="button"
               class="btn btn-primary"
               :disabled="stripeStatus === 'submitting' || stripeStatus === 'loading'"
@@ -218,6 +228,7 @@ const receiptError = ref('')
 const stripeMount = ref<HTMLElement | null>(null)
 const stripeStatus = ref<StripeStatus>('idle')
 const stripeError = ref('')
+const stripeInitError = ref(false)
 const savedCards = ref<SavedCard[]>([])
 const selectedCardId = ref<string>('new')
 const saveCard = ref(false)
@@ -291,6 +302,29 @@ function readDesignToken(name: string, fallback: string): string {
   return v || fallback
 }
 
+async function mountStripeElements(clientSecret: string) {
+  if (!stripeInstance) throw new Error('Stripe not initialized')
+  stripeElements = stripeInstance.elements({
+    clientSecret,
+    appearance: {
+      theme: 'stripe',
+      variables: {
+        colorPrimary: readDesignToken('--accent', '#2563eb'),
+        colorBackground: readDesignToken('--bg', '#ffffff'),
+        colorText: readDesignToken('--text-h', '#0f172a'),
+        colorDanger: '#dc2626',
+        fontFamily: 'system-ui, sans-serif',
+        borderRadius: '6px',
+      },
+    },
+  })
+  const paymentEl = stripeElements.create('payment', { layout: 'tabs' })
+  await nextTick()
+  if (!stripeMount.value) throw new Error('Payment container not ready')
+  stripeMount.value.innerHTML = ''
+  paymentEl.mount(stripeMount.value)
+}
+
 async function initStripeElement(orderId: string) {
   const res = await api.post<{
     client_secret: string
@@ -311,30 +345,7 @@ async function initStripeElement(orderId: string) {
     throw new Error('Stripe.js failed to load')
   }
 
-  stripeElements = stripeInstance.elements({
-    clientSecret: res.client_secret,
-    appearance: {
-      theme: 'stripe',
-      variables: {
-        colorPrimary: readDesignToken('--accent', '#2563eb'),
-        colorBackground: readDesignToken('--bg', '#ffffff'),
-        colorText: readDesignToken('--text-h', '#0f172a'),
-        colorDanger: '#dc2626',
-        fontFamily: 'system-ui, sans-serif',
-        borderRadius: '6px',
-      },
-    },
-  })
-
-  const paymentEl = stripeElements.create('payment', {
-    layout: 'tabs',
-  })
-
-  await nextTick()
-  if (!stripeMount.value) {
-    throw new Error('Payment container not ready')
-  }
-  paymentEl.mount(stripeMount.value)
+  await mountStripeElements(res.client_secret)
 }
 
 async function confirmStripePayment() {
@@ -345,29 +356,45 @@ async function confirmStripePayment() {
   const returnUrl = `${window.location.origin}/store/orders?payment=success&order=${orderResult.value.orderId}`
 
   try {
-    // Path 1: user selected a saved card → re-create PI with confirm=true on the backend
+    // Path 1: user selected a saved card → create PI with confirm=true on the backend
     if (selectedCardId.value !== 'new') {
-      await api.post('/api/v1/payments/stripe', {
-        order_id: orderResult.value.orderId,
-        payment_method_id: selectedCardId.value,
-      })
-      cart.clear()
-      router.push(`/store/orders?payment=success&order=${orderResult.value.orderId}`)
+      const pi = await api.post<{ client_secret: string; status: string }>(
+        '/api/v1/payments/stripe',
+        { order_id: orderResult.value.orderId, payment_method_id: selectedCardId.value },
+      )
+      if (pi.status === 'succeeded') {
+        cart.clear()
+        router.push(`/store/orders?payment=success&order=${orderResult.value.orderId}`)
+      } else if (pi.status === 'requires_action') {
+        const { error } = await stripeInstance.handleNextAction({ clientSecret: pi.client_secret })
+        if (error) {
+          stripeError.value = error.message ?? 'Payment requires additional action'
+          stripeStatus.value = 'error'
+        } else {
+          cart.clear()
+          router.push(`/store/orders?payment=success&order=${orderResult.value.orderId}`)
+        }
+      } else {
+        stripeError.value = `Payment not completed (status: ${pi.status})`
+        stripeStatus.value = 'error'
+      }
       return
     }
 
     // Path 2: new card via PaymentElement
     if (!stripeElements) throw new Error('Elements not initialized')
     if (saveCard.value) {
-      // Re-create PI so backend stamps setup_future_usage. Keep client_secret in sync.
+      // Re-create PI so backend stamps setup_future_usage, then re-mount elements
+      // so confirmPayment targets the correct PaymentIntent.
       const res = await api.post<{ client_secret: string }>(
         '/api/v1/payments/stripe',
         { order_id: orderResult.value.orderId, save_card: true },
       )
       orderResult.value.clientSecret = res.client_secret
+      await mountStripeElements(res.client_secret)
     }
 
-    const { error } = await stripeInstance.confirmPayment({
+    const { error, paymentIntent } = await stripeInstance.confirmPayment({
       elements: stripeElements,
       confirmParams: { return_url: returnUrl },
       redirect: 'if_required',
@@ -379,13 +406,34 @@ async function confirmStripePayment() {
       return
     }
 
-    // No redirect needed → payment succeeded inline
+    if (paymentIntent?.status !== 'succeeded') {
+      stripeError.value = `Payment not completed (status: ${paymentIntent?.status ?? 'unknown'})`
+      stripeStatus.value = 'error'
+      return
+    }
+
+    // Payment succeeded inline
     stripeStatus.value = 'done'
     cart.clear()
     router.push(`/store/orders?payment=success&order=${orderResult.value.orderId}`)
   } catch (e: unknown) {
     stripeError.value = e instanceof Error ? e.message : 'Payment failed'
     stripeStatus.value = 'error'
+  }
+}
+
+async function retryStripeInit() {
+  if (!orderResult.value) return
+  stripeError.value = ''
+  stripeInitError.value = false
+  stripeStatus.value = 'loading'
+  try {
+    await initStripeElement(orderResult.value.orderId)
+    stripeStatus.value = 'ready'
+  } catch (e: unknown) {
+    stripeError.value = e instanceof Error ? e.message : 'Failed to initialize payment'
+    stripeStatus.value = 'error'
+    stripeInitError.value = true
   }
 }
 
@@ -421,6 +469,7 @@ async function placeOrder() {
       } catch (e: unknown) {
         stripeError.value = e instanceof Error ? e.message : 'Failed to initialize payment'
         stripeStatus.value = 'error'
+        stripeInitError.value = true
       }
       return
     }

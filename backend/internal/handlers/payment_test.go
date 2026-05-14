@@ -83,6 +83,12 @@ func setupPaymentApp(t *testing.T, stripeKey, publishableKey string) *paymentTes
 		FrontendURL:          "http://localhost:5173",
 	}
 
+	// Set the global stripe.Key so the stripe-go client can authenticate
+	// against the mock backend.
+	origKey := stripe.Key
+	stripe.Key = stripeKey
+	t.Cleanup(func() { stripe.Key = origKey })
+
 	userID := "user-1"
 	_ = users.Create(t.Context(), &domain.User{ID: userID, Email: "u@example.com", Role: "user"})
 
@@ -254,17 +260,24 @@ func TestCreateStripePayment_SavedPaymentMethod_ConfirmsImmediately(t *testing.T
 
 func TestCreateStripePayment_ForbidsOtherUserOrder(t *testing.T) {
 	env := setupPaymentApp(t, "sk_test", "pk_test")
-	// re-create order under a different user
+	// create order owned by a different user
 	other := "user-2"
 	otherPtr := other
-	_ = env.orders.UpdateStatus(t.Context(), env.orderID, "pending")
-	o, _ := env.orders.FindByID(t.Context(), env.orderID)
-	o.UserID = &otherPtr
-	// MockOrderRepo doesn't expose direct write; recreate the order with a new id under other user
 	_ = env.orders.Create(t.Context(), &domain.Order{ID: "order-2", UserID: &otherPtr, Status: "pending", Total: 10}, nil)
 
 	resp, _ := doPostJSON(t, env.app, "/payments/stripe", map[string]any{"order_id": "order-2"})
 	if resp.StatusCode != fiber.StatusForbidden {
 		t.Fatalf("expected 403, got %d", resp.StatusCode)
+	}
+}
+
+func TestCreateStripePayment_ForbidsNilOwnerOrder(t *testing.T) {
+	env := setupPaymentApp(t, "sk_test", "pk_test")
+	// order with no owner (nil user_id) must not be accessible by any user
+	_ = env.orders.Create(t.Context(), &domain.Order{ID: "order-nil", UserID: nil, Status: "pending", Total: 10}, nil)
+
+	resp, _ := doPostJSON(t, env.app, "/payments/stripe", map[string]any{"order_id": "order-nil"})
+	if resp.StatusCode != fiber.StatusForbidden {
+		t.Fatalf("expected 403 for nil-owner order, got %d", resp.StatusCode)
 	}
 }

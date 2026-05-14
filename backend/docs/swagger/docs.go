@@ -1955,12 +1955,12 @@ const docTemplate = `{
                 "summary": "Create a Stripe payment intent",
                 "parameters": [
                     {
-                        "description": "Order ID",
+                        "description": "Stripe payment request",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.createPaymentRequest"
+                            "$ref": "#/definitions/internal_handlers.createStripePaymentRequest"
                         }
                     }
                 ],
@@ -2516,6 +2516,20 @@ const docTemplate = `{
             "properties": {
                 "order_id": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handlers.createStripePaymentRequest": {
+            "type": "object",
+            "properties": {
+                "order_id": {
+                    "type": "string"
+                },
+                "payment_method_id": {
+                    "type": "string"
+                },
+                "save_card": {
+                    "type": "boolean"
                 }
             }
         },

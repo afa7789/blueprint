@@ -186,7 +186,7 @@ describe('Checkout — Stripe inline branch', () => {
       elements: stripeElements,
       confirmPayment: stripeConfirmPayment,
     })
-    apiPost.mockResolvedValueOnce({}) // third post: confirm with payment_method_id
+    apiPost.mockResolvedValueOnce({ client_secret: 'cs_saved', status: 'succeeded' }) // third post: confirm with payment_method_id
 
     const wrapper = mountCheckout()
     await flushPromises()
