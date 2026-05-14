@@ -106,7 +106,7 @@ func setupPaymentApp(t *testing.T, stripeKey, publishableKey string) *paymentTes
 	app.Post("/payments/stripe", func(c *fiber.Ctx) error {
 		c.Locals("user_id", userID)
 		return h.CreateStripePayment(c)
-	} /* second handler not needed */)
+	})
 
 	return &paymentTestEnv{
 		app:     app,
