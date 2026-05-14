@@ -70,7 +70,13 @@ function formatDate(dateStr: string) {
 }
 
 onMounted(() => {
-  if (route.query.success) {
+  if (route.query.payment === 'success') {
+    const orderId = typeof route.query.order === 'string' ? route.query.order.slice(0, 8) : ''
+    successMessage.value = orderId
+      ? `Payment confirmed for order #${orderId}.`
+      : 'Payment confirmed.'
+    setTimeout(() => { successMessage.value = '' }, 6000)
+  } else if (route.query.success) {
     successMessage.value = 'Order placed successfully!'
     setTimeout(() => { successMessage.value = '' }, 5000)
   }
