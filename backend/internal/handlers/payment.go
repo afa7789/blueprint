@@ -16,17 +16,24 @@ import (
 
 type PaymentHandler struct {
 	orders  domain.OrderRepository
+	users   domain.UserRepository
 	pixCfg  domain.PixConfigRepository
 	cfg     *config.Config
 	storage domain.Storage
 }
 
-func NewPaymentHandler(orders domain.OrderRepository, pixCfg domain.PixConfigRepository, cfg *config.Config, storage domain.Storage) *PaymentHandler {
-	return &PaymentHandler{orders: orders, pixCfg: pixCfg, cfg: cfg, storage: storage}
+func NewPaymentHandler(orders domain.OrderRepository, users domain.UserRepository, pixCfg domain.PixConfigRepository, cfg *config.Config, storage domain.Storage) *PaymentHandler {
+	return &PaymentHandler{orders: orders, users: users, pixCfg: pixCfg, cfg: cfg, storage: storage}
 }
 
 type createPaymentRequest struct {
 	OrderID string `json:"order_id"`
+}
+
+type createStripePaymentRequest struct {
+	OrderID         string  `json:"order_id"`
+	PaymentMethodID *string `json:"payment_method_id,omitempty"`
+	SaveCard        bool    `json:"save_card,omitempty"`
 }
 
 // CreateStripePayment godoc
@@ -34,17 +41,25 @@ type createPaymentRequest struct {
 // @Tags        Payments
 // @Accept      json
 // @Produce     json
-// @Param       body body createPaymentRequest true "Order ID"
+// @Param       body body createStripePaymentRequest true "Stripe payment request"
 // @Success     200 {object} map[string]interface{}
 // @Router      /payments/stripe [post]
 func (h *PaymentHandler) CreateStripePayment(c *fiber.Ctx) error {
-	if h.cfg.StripeKey == "" {
-		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "stripe not configured"})
+	if h.cfg.StripeKey == "" || h.cfg.StripePublishableKey == "" {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"error":        "stripe not configured",
+			"env_required": "STRIPE_KEY, STRIPE_PUBLISHABLE_KEY",
+		})
 	}
 
-	var req createPaymentRequest
+	var req createStripePaymentRequest
 	if err := c.BodyParser(&req); err != nil || req.OrderID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "order_id required")
+	}
+
+	userID, _ := c.Locals("user_id").(string)
+	if userID == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "authentication required")
 	}
 
 	order, err := h.orders.FindByID(c.Context(), req.OrderID)
@@ -54,11 +69,37 @@ func (h *PaymentHandler) CreateStripePayment(c *fiber.Ctx) error {
 	if order.Status != "pending" {
 		return fiber.NewError(fiber.StatusBadRequest, "order is not pending")
 	}
+	if order.UserID != nil && *order.UserID != userID {
+		return fiber.NewError(fiber.StatusForbidden, "not your order")
+	}
+
+	user, err := h.users.FindByID(c.Context(), userID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "user not found")
+	}
+	customerID, err := GetOrCreateStripeCustomer(c.Context(), h.users, user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to provision stripe customer"})
+	}
 
 	params := &stripe.PaymentIntentParams{
 		Amount:   stripe.Int64(int64(order.Total * 100)),
 		Currency: stripe.String("brl"),
+		Customer: stripe.String(customerID),
+		AutomaticPaymentMethods: &stripe.PaymentIntentAutomaticPaymentMethodsParams{
+			Enabled: stripe.Bool(true),
+		},
 	}
+	if req.SaveCard {
+		params.SetupFutureUsage = stripe.String("off_session")
+	}
+	if req.PaymentMethodID != nil && *req.PaymentMethodID != "" {
+		params.PaymentMethod = stripe.String(*req.PaymentMethodID)
+		params.Confirm = stripe.Bool(true)
+		params.OffSession = stripe.Bool(false)
+		params.ReturnURL = stripe.String(h.cfg.FrontendURL + "/store/orders?payment=success&order=" + order.ID)
+	}
+
 	pi, err := paymentintent.New(params)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to create payment intent: "+err.Error())
@@ -68,7 +109,12 @@ func (h *PaymentHandler) CreateStripePayment(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(fiber.Map{"client_secret": pi.ClientSecret})
+	return c.JSON(fiber.Map{
+		"client_secret":    pi.ClientSecret,
+		"publishable_key":  h.cfg.StripePublishableKey,
+		"payment_intent_id": pi.ID,
+		"status":           string(pi.Status),
+	})
 }
 
 // StripeWebhook godoc

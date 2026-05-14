@@ -19,8 +19,9 @@ type Config struct {
 	JWTExpiry     time.Duration
 	RefreshExpiry time.Duration
 
-	StripeKey           string
-	StripeWebhookSecret string
+	StripeKey             string
+	StripeWebhookSecret   string
+	StripePublishableKey  string
 
 	StorageType string // local, s3 (legacy — kept for backwards compat)
 	AWSBucket   string
@@ -85,8 +86,9 @@ func Load() *Config {
 		JWTExpiry:     getDuration("JWT_EXPIRY", 15*time.Minute),
 		RefreshExpiry: getDuration("REFRESH_EXPIRY", 7*24*time.Hour),
 
-		StripeKey:           getEnv("STRIPE_KEY", ""),
-		StripeWebhookSecret: getEnv("STRIPE_WEBHOOK_SECRET", ""),
+		StripeKey:            getEnv("STRIPE_KEY", ""),
+		StripeWebhookSecret:  getEnv("STRIPE_WEBHOOK_SECRET", ""),
+		StripePublishableKey: getEnv("STRIPE_PUBLISHABLE_KEY", ""),
 
 		StorageType: getEnv("STORAGE_TYPE", "local"),
 		AWSBucket:   getEnv("AWS_BUCKET", ""),

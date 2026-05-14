@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	stripe "github.com/stripe/stripe-go/v82"
-	stripecustomer "github.com/stripe/stripe-go/v82/customer"
 	stripepaymentmethod "github.com/stripe/stripe-go/v82/paymentmethod"
 	stripesetupintent "github.com/stripe/stripe-go/v82/setupintent"
 	"golang.org/x/crypto/bcrypt"
@@ -199,22 +198,13 @@ func (h *UserHandler) CreateSetupIntent(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "user not found"})
 	}
 
-	// Create Stripe customer if not exists
-	if u.StripeCustomerID == nil {
-		customer, err := stripecustomer.New(&stripe.CustomerParams{
-			Email: stripe.String(u.Email),
-		})
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": "failed to create stripe customer"})
-		}
-		if err := h.users.UpdateStripeCustomerID(c.Context(), userID, customer.ID); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": "failed to save stripe customer"})
-		}
-		u.StripeCustomerID = &customer.ID
+	customerID, err := GetOrCreateStripeCustomer(c.Context(), h.users, u)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to provision stripe customer"})
 	}
 
 	si, err := stripesetupintent.New(&stripe.SetupIntentParams{
-		Customer:           u.StripeCustomerID,
+		Customer:           stripe.String(customerID),
 		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
 	})
 	if err != nil {
