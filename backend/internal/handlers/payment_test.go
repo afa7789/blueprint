@@ -61,13 +61,13 @@ func newStripeMock(t *testing.T) *stripeMock {
 }
 
 type paymentTestEnv struct {
-	app       *fiber.App
-	orders    *testutil.MockOrderRepo
-	users     *testutil.MockUserRepo
-	cfg       *config.Config
-	userID    string
-	orderID   string
-	mock      *stripeMock
+	app     *fiber.App
+	orders  *testutil.MockOrderRepo
+	users   *testutil.MockUserRepo
+	cfg     *config.Config
+	userID  string
+	orderID string
+	mock    *stripeMock
 }
 
 func setupPaymentApp(t *testing.T, stripeKey, publishableKey string) *paymentTestEnv {
@@ -106,7 +106,7 @@ func setupPaymentApp(t *testing.T, stripeKey, publishableKey string) *paymentTes
 	app.Post("/payments/stripe", func(c *fiber.Ctx) error {
 		c.Locals("user_id", userID)
 		return h.CreateStripePayment(c)
-	}, /* second handler not needed */ )
+	} /* second handler not needed */)
 
 	return &paymentTestEnv{
 		app:     app,
@@ -119,26 +119,26 @@ func setupPaymentApp(t *testing.T, stripeKey, publishableKey string) *paymentTes
 	}
 }
 
-func doPostJSON(t *testing.T, app *fiber.App, path string, body any) (*http.Response, map[string]any) {
+func doPostJSON(t *testing.T, app *fiber.App, body any) (int, map[string]any) {
 	t.Helper()
 	buf, _ := json.Marshal(body)
-	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(buf))
+	req := httptest.NewRequest(http.MethodPost, "/payments/stripe", bytes.NewReader(buf))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = resp.Body.Close() })
+	defer func() { _ = resp.Body.Close() }()
 	var parsed map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&parsed)
-	return resp, parsed
+	return resp.StatusCode, parsed
 }
 
 func TestCreateStripePayment_StripeNotConfigured(t *testing.T) {
 	env := setupPaymentApp(t, "", "")
-	resp, body := doPostJSON(t, env.app, "/payments/stripe", map[string]any{"order_id": env.orderID})
-	if resp.StatusCode != fiber.StatusServiceUnavailable {
-		t.Fatalf("expected 503, got %d (%v)", resp.StatusCode, body)
+	statusCode, body := doPostJSON(t, env.app, map[string]any{"order_id": env.orderID})
+	if statusCode != fiber.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d (%v)", statusCode, body)
 	}
 	if got, _ := body["error"].(string); got != "stripe not configured" {
 		t.Fatalf("unexpected error: %v", body)
@@ -147,43 +147,43 @@ func TestCreateStripePayment_StripeNotConfigured(t *testing.T) {
 
 func TestCreateStripePayment_PublishableKeyMissing(t *testing.T) {
 	env := setupPaymentApp(t, "sk_test", "")
-	resp, _ := doPostJSON(t, env.app, "/payments/stripe", map[string]any{"order_id": env.orderID})
-	if resp.StatusCode != fiber.StatusServiceUnavailable {
-		t.Fatalf("expected 503 when publishable key missing, got %d", resp.StatusCode)
+	statusCode, _ := doPostJSON(t, env.app, map[string]any{"order_id": env.orderID})
+	if statusCode != fiber.StatusServiceUnavailable {
+		t.Fatalf("expected 503 when publishable key missing, got %d", statusCode)
 	}
 }
 
 func TestCreateStripePayment_MissingOrderID(t *testing.T) {
 	env := setupPaymentApp(t, "sk_test", "pk_test")
-	resp, _ := doPostJSON(t, env.app, "/payments/stripe", map[string]any{})
-	if resp.StatusCode != fiber.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", resp.StatusCode)
+	statusCode, _ := doPostJSON(t, env.app, map[string]any{})
+	if statusCode != fiber.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", statusCode)
 	}
 }
 
 func TestCreateStripePayment_OrderNotFound(t *testing.T) {
 	env := setupPaymentApp(t, "sk_test", "pk_test")
-	resp, _ := doPostJSON(t, env.app, "/payments/stripe", map[string]any{"order_id": "missing"})
-	if resp.StatusCode != fiber.StatusNotFound {
-		t.Fatalf("expected 404, got %d", resp.StatusCode)
+	statusCode, _ := doPostJSON(t, env.app, map[string]any{"order_id": "missing"})
+	if statusCode != fiber.StatusNotFound {
+		t.Fatalf("expected 404, got %d", statusCode)
 	}
 }
 
 func TestCreateStripePayment_OrderNotPending(t *testing.T) {
 	env := setupPaymentApp(t, "sk_test", "pk_test")
 	_ = env.orders.UpdateStatus(t.Context(), env.orderID, "paid")
-	resp, _ := doPostJSON(t, env.app, "/payments/stripe", map[string]any{"order_id": env.orderID})
-	if resp.StatusCode != fiber.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", resp.StatusCode)
+	statusCode, _ := doPostJSON(t, env.app, map[string]any{"order_id": env.orderID})
+	if statusCode != fiber.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", statusCode)
 	}
 }
 
 func TestCreateStripePayment_HappyPath_CreatesCustomerAndIntent(t *testing.T) {
 	env := setupPaymentApp(t, "sk_test", "pk_test_live")
 
-	resp, body := doPostJSON(t, env.app, "/payments/stripe", map[string]any{"order_id": env.orderID})
-	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("expected 200, got %d (%v)", resp.StatusCode, body)
+	statusCode, body := doPostJSON(t, env.app, map[string]any{"order_id": env.orderID})
+	if statusCode != fiber.StatusOK {
+		t.Fatalf("expected 200, got %d (%v)", statusCode, body)
 	}
 
 	if cs, _ := body["client_secret"].(string); !strings.HasPrefix(cs, "pi_test_abc_secret") {
@@ -224,12 +224,12 @@ func TestCreateStripePayment_HappyPath_CreatesCustomerAndIntent(t *testing.T) {
 
 func TestCreateStripePayment_SaveCard_SetsFutureUsage(t *testing.T) {
 	env := setupPaymentApp(t, "sk_test", "pk_test")
-	resp, _ := doPostJSON(t, env.app, "/payments/stripe", map[string]any{
+	statusCode, _ := doPostJSON(t, env.app, map[string]any{
 		"order_id":  env.orderID,
 		"save_card": true,
 	})
-	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	if statusCode != fiber.StatusOK {
+		t.Fatalf("expected 200, got %d", statusCode)
 	}
 	form := env.mock.createdPIs[0]
 	if form.Get("setup_future_usage") != "off_session" {
@@ -239,12 +239,12 @@ func TestCreateStripePayment_SaveCard_SetsFutureUsage(t *testing.T) {
 
 func TestCreateStripePayment_SavedPaymentMethod_ConfirmsImmediately(t *testing.T) {
 	env := setupPaymentApp(t, "sk_test", "pk_test")
-	resp, _ := doPostJSON(t, env.app, "/payments/stripe", map[string]any{
+	statusCode, _ := doPostJSON(t, env.app, map[string]any{
 		"order_id":          env.orderID,
 		"payment_method_id": "pm_card_visa",
 	})
-	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	if statusCode != fiber.StatusOK {
+		t.Fatalf("expected 200, got %d", statusCode)
 	}
 	form := env.mock.createdPIs[0]
 	if form.Get("payment_method") != "pm_card_visa" {
@@ -265,9 +265,9 @@ func TestCreateStripePayment_ForbidsOtherUserOrder(t *testing.T) {
 	otherPtr := other
 	_ = env.orders.Create(t.Context(), &domain.Order{ID: "order-2", UserID: &otherPtr, Status: "pending", Total: 10}, nil)
 
-	resp, _ := doPostJSON(t, env.app, "/payments/stripe", map[string]any{"order_id": "order-2"})
-	if resp.StatusCode != fiber.StatusForbidden {
-		t.Fatalf("expected 403, got %d", resp.StatusCode)
+	statusCode, _ := doPostJSON(t, env.app, map[string]any{"order_id": "order-2"})
+	if statusCode != fiber.StatusForbidden {
+		t.Fatalf("expected 403, got %d", statusCode)
 	}
 }
 
@@ -276,8 +276,8 @@ func TestCreateStripePayment_ForbidsNilOwnerOrder(t *testing.T) {
 	// order with no owner (nil user_id) must not be accessible by any user
 	_ = env.orders.Create(t.Context(), &domain.Order{ID: "order-nil", UserID: nil, Status: "pending", Total: 10}, nil)
 
-	resp, _ := doPostJSON(t, env.app, "/payments/stripe", map[string]any{"order_id": "order-nil"})
-	if resp.StatusCode != fiber.StatusForbidden {
-		t.Fatalf("expected 403 for nil-owner order, got %d", resp.StatusCode)
+	statusCode, _ := doPostJSON(t, env.app, map[string]any{"order_id": "order-nil"})
+	if statusCode != fiber.StatusForbidden {
+		t.Fatalf("expected 403 for nil-owner order, got %d", statusCode)
 	}
 }

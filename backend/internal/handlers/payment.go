@@ -110,10 +110,10 @@ func (h *PaymentHandler) CreateStripePayment(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"client_secret":    pi.ClientSecret,
-		"publishable_key":  h.cfg.StripePublishableKey,
+		"client_secret":     pi.ClientSecret,
+		"publishable_key":   h.cfg.StripePublishableKey,
 		"payment_intent_id": pi.ID,
-		"status":           string(pi.Status),
+		"status":            string(pi.Status),
 	})
 }
 

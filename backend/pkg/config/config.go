@@ -19,9 +19,9 @@ type Config struct {
 	JWTExpiry     time.Duration
 	RefreshExpiry time.Duration
 
-	StripeKey             string
-	StripeWebhookSecret   string
-	StripePublishableKey  string
+	StripeKey            string
+	StripeWebhookSecret  string
+	StripePublishableKey string
 
 	StorageType string // local, s3 (legacy — kept for backwards compat)
 	AWSBucket   string
