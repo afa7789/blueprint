@@ -2521,6 +2521,9 @@ const docTemplate = `{
         },
         "internal_handlers.createStripePaymentRequest": {
             "type": "object",
+            "required": [
+                "order_id"
+            ],
             "properties": {
                 "order_id": {
                     "type": "string"

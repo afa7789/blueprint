@@ -31,7 +31,7 @@ type createPaymentRequest struct {
 }
 
 type createStripePaymentRequest struct {
-	OrderID         string  `json:"order_id"`
+	OrderID         string  `json:"order_id" binding:"required"`
 	PaymentMethodID *string `json:"payment_method_id,omitempty"`
 	SaveCard        bool    `json:"save_card,omitempty"`
 }

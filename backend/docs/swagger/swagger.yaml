@@ -176,6 +176,8 @@ definitions:
         type: string
       save_card:
         type: boolean
+    required:
+    - order_id
     type: object
   internal_handlers.profileResponse:
     properties:
