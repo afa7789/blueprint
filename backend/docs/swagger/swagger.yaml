@@ -168,6 +168,17 @@ definitions:
       order_id:
         type: string
     type: object
+  internal_handlers.createStripePaymentRequest:
+    properties:
+      order_id:
+        type: string
+      payment_method_id:
+        type: string
+      save_card:
+        type: boolean
+    required:
+    - order_id
+    type: object
   internal_handlers.profileResponse:
     properties:
       address:
@@ -1403,12 +1414,12 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Order ID
+      - description: Stripe payment request
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.createPaymentRequest'
+          $ref: '#/definitions/internal_handlers.createStripePaymentRequest'
       produces:
       - application/json
       responses:

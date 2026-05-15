@@ -63,8 +63,64 @@
 
         <div v-if="orderResult" class="payment-result">
           <template v-if="orderResult.method === 'stripe'">
-            <p>Stripe payment was initialized for order <span class="mono">{{ orderResult.orderId }}</span>.</p>
-            <p class="payment-note">The visual card checkout still needs the final UI hookup, but the payment intent is already created.</p>
+            <p class="stripe-title">Pay with card</p>
+
+            <div v-if="savedCards.length > 0" class="saved-cards">
+              <label
+                v-for="card in savedCards"
+                :key="card.id"
+                class="saved-card"
+                :class="{ selected: selectedCardId === card.id }"
+              >
+                <input
+                  type="radio"
+                  name="saved-card"
+                  :value="card.id"
+                  v-model="selectedCardId"
+                />
+                <span class="saved-card-brand">{{ card.brand }}</span>
+                <span class="saved-card-number">**** {{ card.last4 }}</span>
+                <span class="saved-card-exp">{{ card.exp_month }}/{{ card.exp_year }}</span>
+              </label>
+              <label class="saved-card" :class="{ selected: selectedCardId === 'new' }">
+                <input type="radio" name="saved-card" value="new" v-model="selectedCardId" />
+                <span>Use a new card</span>
+              </label>
+            </div>
+
+            <div
+              v-show="selectedCardId === 'new'"
+              ref="stripeMount"
+              class="stripe-element"
+              data-testid="stripe-payment-element"
+            ></div>
+
+            <label v-if="selectedCardId === 'new'" class="save-card-toggle">
+              <input type="checkbox" v-model="saveCard" />
+              <span>Save this card for future purchases</span>
+            </label>
+
+            <p v-if="stripeError" class="error">{{ stripeError }}</p>
+
+            <button
+              v-if="stripeInitError"
+              type="button"
+              class="btn btn-secondary"
+              @click="retryStripeInit"
+              data-testid="retry-stripe-btn"
+            >
+              Retry
+            </button>
+            <button
+              v-else
+              type="button"
+              class="btn btn-primary"
+              :disabled="stripeStatus === 'submitting' || stripeStatus === 'loading'"
+              @click="confirmStripePayment"
+              data-testid="confirm-stripe-btn"
+            >
+              {{ stripeStatus === 'submitting' ? 'Processing…' : `Pay ${formatCurrency(cart.total)}` }}
+            </button>
           </template>
           <template v-else-if="orderResult.method === 'pix_manual'">
             <p class="pix-title">PIX Payment</p>
@@ -126,13 +182,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import QRCode from 'qrcode'
+import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js'
 import { api } from '../../services/api'
 import { fetchFeatureFlags, isFeatureEnabled } from '../../services/featureFlags'
 import { formatCurrency } from '../../utils/currency'
 import { useCartStore } from '../../stores/cart'
+import { useAuthStore } from '../../stores/auth'
+
+interface SavedCard {
+  id: string
+  brand: string
+  last4: string
+  exp_month: number
+  exp_year: number
+}
+
+type StripeStatus = 'idle' | 'loading' | 'ready' | 'submitting' | 'error' | 'done'
 
 interface PaymentMethodOption {
   value: string
@@ -142,18 +210,30 @@ interface PaymentMethodOption {
 }
 
 const cart = useCartStore()
+const auth = useAuthStore()
 const router = useRouter()
 
 const shipping = ref({ name: '', street: '', city: '', state: '', zip: '' })
 const paymentMethod = ref('')
 const submitting = ref(false)
 const orderError = ref('')
-const orderResult = ref<{ method: string; orderId: string; clientSecret?: string; txId?: string; brcode?: string; beneficiary?: string; amount?: number } | null>(null)
+const orderResult = ref<{ method: string; orderId: string; clientSecret?: string; publishableKey?: string; txId?: string; brcode?: string; beneficiary?: string; amount?: number } | null>(null)
 const qrImageUrl = ref('')
 const receiptFile = ref<File | null>(null)
 const uploadingReceipt = ref(false)
 const receiptUploaded = ref(false)
 const receiptError = ref('')
+
+// Stripe inline checkout state
+const stripeMount = ref<HTMLElement | null>(null)
+const stripeStatus = ref<StripeStatus>('idle')
+const stripeError = ref('')
+const stripeInitError = ref(false)
+const savedCards = ref<SavedCard[]>([])
+const selectedCardId = ref<string>('new')
+const saveCard = ref(false)
+let stripeInstance: Stripe | null = null
+let stripeElements: StripeElements | null = null
 
 const allPaymentMethods: PaymentMethodOption[] = [
   { value: 'stripe', label: 'Credit Card (Stripe)', flag: 'payments_stripe' },
@@ -206,6 +286,157 @@ function copyBrcode() {
   }
 }
 
+async function loadSavedCards() {
+  if (!auth.isAuthenticated) return
+  try {
+    const cards = await api.get<SavedCard[]>('/api/v1/user/saved-cards')
+    savedCards.value = cards ?? []
+  } catch {
+    savedCards.value = []
+  }
+}
+
+function readDesignToken(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return v || fallback
+}
+
+async function mountStripeElements(clientSecret: string) {
+  if (!stripeInstance) throw new Error('Stripe not initialized')
+  stripeElements = stripeInstance.elements({
+    clientSecret,
+    appearance: {
+      theme: 'stripe',
+      variables: {
+        colorPrimary: readDesignToken('--accent', '#2563eb'),
+        colorBackground: readDesignToken('--bg', '#ffffff'),
+        colorText: readDesignToken('--text-h', '#0f172a'),
+        colorDanger: '#dc2626',
+        fontFamily: 'system-ui, sans-serif',
+        borderRadius: '6px',
+      },
+    },
+  })
+  const paymentEl = stripeElements.create('payment', { layout: 'tabs' })
+  await nextTick()
+  if (!stripeMount.value) throw new Error('Payment container not ready')
+  stripeMount.value.innerHTML = ''
+  paymentEl.mount(stripeMount.value)
+}
+
+async function initStripeElement(orderId: string) {
+  const res = await api.post<{
+    client_secret: string
+    publishable_key: string
+    payment_intent_id: string
+    status: string
+  }>('/api/v1/payments/stripe', { order_id: orderId })
+
+  orderResult.value = {
+    method: 'stripe',
+    orderId,
+    clientSecret: res.client_secret,
+    publishableKey: res.publishable_key,
+  }
+
+  stripeInstance = await loadStripe(res.publishable_key)
+  if (!stripeInstance) {
+    throw new Error('Stripe.js failed to load')
+  }
+
+  await mountStripeElements(res.client_secret)
+}
+
+async function confirmStripePayment() {
+  if (!orderResult.value || !stripeInstance) return
+  stripeError.value = ''
+  stripeStatus.value = 'submitting'
+
+  const returnUrl = `${window.location.origin}/store/orders?payment=success&order=${orderResult.value.orderId}`
+
+  try {
+    // Path 1: user selected a saved card → create PI with confirm=true on the backend
+    if (selectedCardId.value !== 'new') {
+      const pi = await api.post<{ client_secret: string; status: string }>(
+        '/api/v1/payments/stripe',
+        { order_id: orderResult.value.orderId, payment_method_id: selectedCardId.value },
+      )
+      if (pi.status === 'succeeded') {
+        cart.clear()
+        router.push(`/store/orders?payment=success&order=${orderResult.value.orderId}`)
+      } else if (pi.status === 'requires_action') {
+        const { error } = await stripeInstance.handleNextAction({ clientSecret: pi.client_secret })
+        if (error) {
+          stripeError.value = error.message ?? 'Payment requires additional action'
+          stripeStatus.value = 'error'
+        } else {
+          cart.clear()
+          router.push(`/store/orders?payment=success&order=${orderResult.value.orderId}`)
+        }
+      } else {
+        stripeError.value = `Payment not completed (status: ${pi.status})`
+        stripeStatus.value = 'error'
+      }
+      return
+    }
+
+    // Path 2: new card via PaymentElement
+    if (!stripeElements) throw new Error('Elements not initialized')
+    if (saveCard.value) {
+      // Re-create PI so backend stamps setup_future_usage, then re-mount elements
+      // so confirmPayment targets the correct PaymentIntent.
+      const res = await api.post<{ client_secret: string }>(
+        '/api/v1/payments/stripe',
+        { order_id: orderResult.value.orderId, save_card: true },
+      )
+      orderResult.value.clientSecret = res.client_secret
+      await mountStripeElements(res.client_secret)
+    }
+
+    const { error, paymentIntent } = await stripeInstance.confirmPayment({
+      elements: stripeElements,
+      confirmParams: { return_url: returnUrl },
+      redirect: 'if_required',
+    })
+
+    if (error) {
+      stripeError.value = error.message ?? 'Payment failed'
+      stripeStatus.value = 'error'
+      return
+    }
+
+    if (paymentIntent?.status !== 'succeeded') {
+      stripeError.value = `Payment not completed (status: ${paymentIntent?.status ?? 'unknown'})`
+      stripeStatus.value = 'error'
+      return
+    }
+
+    // Payment succeeded inline
+    stripeStatus.value = 'done'
+    cart.clear()
+    router.push(`/store/orders?payment=success&order=${orderResult.value.orderId}`)
+  } catch (e: unknown) {
+    stripeError.value = e instanceof Error ? e.message : 'Payment failed'
+    stripeStatus.value = 'error'
+  }
+}
+
+async function retryStripeInit() {
+  if (!orderResult.value) return
+  stripeError.value = ''
+  stripeInitError.value = false
+  stripeStatus.value = 'loading'
+  try {
+    await initStripeElement(orderResult.value.orderId)
+    stripeStatus.value = 'ready'
+  } catch (e: unknown) {
+    stripeError.value = e instanceof Error ? e.message : 'Failed to initialize payment'
+    stripeStatus.value = 'error'
+    stripeInitError.value = true
+  }
+}
+
 async function placeOrder() {
   if (!paymentMethod.value) {
     orderError.value = 'Select a payment method to continue'
@@ -229,10 +460,17 @@ async function placeOrder() {
     const orderId = data.id
 
     if (paymentMethod.value === 'stripe') {
-      const stripeRes = await api.post<{ client_secret: string }>('/api/v1/payments/stripe', { order_id: orderId })
-      // TODO: Use stripeRes.client_secret to complete payment via Stripe Elements/PaymentElement
-      orderResult.value = { method: 'stripe', orderId, clientSecret: stripeRes.client_secret }
-      cart.clear()
+      orderResult.value = { method: 'stripe', orderId }
+      stripeStatus.value = 'loading'
+      await loadSavedCards()
+      try {
+        await initStripeElement(orderId)
+        stripeStatus.value = 'ready'
+      } catch (e: unknown) {
+        stripeError.value = e instanceof Error ? e.message : 'Failed to initialize payment'
+        stripeStatus.value = 'error'
+        stripeInitError.value = true
+      }
       return
     }
 
@@ -542,5 +780,64 @@ async function placeOrder() {
 .receipt-success-title {
   color: #22c55e;
   font-weight: 600;
+}
+
+.stripe-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-h);
+  margin-bottom: 12px;
+}
+
+.saved-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.saved-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.saved-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-bg, rgba(37, 99, 235, 0.05));
+}
+
+.saved-card-brand {
+  font-weight: 600;
+  text-transform: capitalize;
+  min-width: 60px;
+}
+
+.saved-card-number {
+  flex: 1;
+  font-family: var(--mono, monospace);
+}
+
+.saved-card-exp {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.stripe-element {
+  margin-bottom: 16px;
+}
+
+.save-card-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--text);
 }
 </style>

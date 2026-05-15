@@ -206,7 +206,7 @@ func main() {
 	adminHandler := handlers.NewAdminHandler(userRepo, bannerRepo, linktreeRepo, brandKitRepo, emailGroupRepo, emailSubRepo, userGroupRepo, storageBackend, cfg)
 	storeHandler := handlers.NewStoreHandler(productRepo, categoryRepo, orderRepo, couponRepo, cfg)
 	couponHandler := handlers.NewCouponHandler(couponRepo)
-	paymentHandler := handlers.NewPaymentHandler(orderRepo, pixConfigRepo, cfg, storageBackend)
+	paymentHandler := handlers.NewPaymentHandler(orderRepo, userRepo, pixConfigRepo, cfg, storageBackend)
 	blogRepo := infrastructure.NewBlogRepo(pool)
 	blogHandler := handlers.NewBlogHandler(blogRepo, cfg, storageBackend)
 	cronJobRepo := infrastructure.NewCronJobRepo(pool)

@@ -69,12 +69,27 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString()
 }
 
-onMounted(() => {
-  if (route.query.success) {
+onMounted(async () => {
+  await fetchOrders()
+
+  const orderId = typeof route.query.order === 'string' ? route.query.order : ''
+  const shortId = orderId.slice(0, 8)
+  const claimsPayment =
+    route.query.redirect_status === 'succeeded' || route.query.payment === 'success'
+
+  if (claimsPayment) {
+    // Never trust query params as proof of payment; verify against the loaded order.
+    const confirmedOrder = orderId ? orders.value.find(o => o.id === orderId) : null
+    if (confirmedOrder?.status === 'paid') {
+      successMessage.value = shortId
+        ? `Payment confirmed for order #${shortId}.`
+        : 'Payment confirmed.'
+      setTimeout(() => { successMessage.value = '' }, 6000)
+    }
+  } else if (route.query.success) {
     successMessage.value = 'Order placed successfully!'
     setTimeout(() => { successMessage.value = '' }, 5000)
   }
-  fetchOrders()
 })
 </script>
 
