@@ -124,31 +124,72 @@ Exposes host metrics for Prometheus on `:9100`.
 
 ## 4. Deploy
 
-### Setup
+### How it works
+
+Production deploys use **immutable artifacts**. CI builds everything (binaries, frontend, Grafana config) and uploads a complete release bundle to the VPS. A promotion script on the server activates it — no build tools needed on the host.
+
+```
+GitHub Actions (CI) → build release → rsync to VPS → deploy-native.sh → health check
+```
+
+### Automatic deploy (recommended)
+
+Pushing to `main` triggers the pipeline automatically:
+
+1. **CI** runs security, build, lint, test, e2e, and semantic-release.
+2. On success, **deploy.yml** builds a release bundle:
+   - `bin/blueprint-api` + `bin/blueprint-health` (Linux amd64, static)
+   - `frontend/` (Vue 3 dist)
+   - `grafana/` (dashboards + provisioning)
+3. Uploads to `/opt/blueprint/releases/incoming/<sha>/`
+4. Runs `deploy-native.sh <sha>` on the VPS
+5. Health check passes → done. Fails → automatic rollback.
+
+### Secrets required
+
+| Secret | Purpose |
+|--------|---------|
+| `VPS_SSH_KEY` | SSH private key for the VPS |
+| `VPS_HOST` | VPS hostname or IP |
+| `VPS_USER` | SSH user (default: `blueprint`) |
+
+### Manual deploy (fallback)
+
+For emergencies or when CI is unavailable, the old local-build-and-upload flow still works:
 
 ```bash
 cp scripts/.deploy.env.example scripts/.deploy.env
-```
+# edit .deploy.env with your VPS credentials
 
-Edit `.deploy.env`:
-
-```env
-VPS_HOST=your-server.com
-VPS_USER=blueprint
-VPS_PATH=/opt/blueprint
-DOMAIN=your-domain.com
-```
-
-### Commands
-
-```bash
 make deploy           # Deploy backend + frontend
 make deploy-backend   # Backend only
 make deploy-frontend  # Frontend only
 make deploy-dry       # Dry run (preview)
 ```
 
-### Deploy Flow — Backend
+### Deploy flow — automatic (deploy.yml)
+
+1. **Checkout** code at the commit SHA that passed CI
+2. **Build** Go binaries with `CGO_ENABLED=0 -trimpath -ldflags="-s -w"`
+3. **Build** frontend with `bun run build`
+4. **Assemble** Grafana dashboards + provisioning
+5. **Upload** entire release to `/opt/blueprint/releases/incoming/<sha>/`
+6. **Activate** by running `deploy-native.sh <sha>` on the VPS
+
+### Deploy flow — deploy-native.sh (on VPS)
+
+1. **Validate** all expected binaries exist in the incoming directory
+2. **Stage** the release to a temporary staging directory
+3. **Preserve** current binaries as `<binary>.previous` for rollback
+4. **Swap** binaries atomically (`install` + `mv`)
+5. **Sync** frontend assets (`rsync --delete`)
+6. **Sync** Grafana dashboards + provisioning (if Grafana is installed)
+7. **Restart** services: `blueprint-api`, `blueprint-health`, `grafana-server`, nginx
+8. **Health check** — 30 retries, 2s interval, `curl /healthz`
+9. **Rollback** automatically if health check fails
+10. **Cleanup** incoming directory and prune releases older than 14 days
+
+### Deploy flow — manual (deploy.sh)
 
 1. **Build** locally: `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"`
 2. **Upload** via rsync to VPS `/tmp/blueprint-deploy/`
@@ -159,7 +200,7 @@ make deploy-dry       # Dry run (preview)
 7. **Auto-rollback** if health check fails (restore `.bak`, restart)
 8. **Cleanup** temporary files
 
-### Deploy Flow — Frontend
+### Deploy flow — Frontend (manual only)
 
 1. **Build** locally: `bun run build`
 2. **Upload** via rsync `dist/` to VPS `/opt/blueprint/frontend/`
@@ -181,11 +222,26 @@ bash /opt/blueprint/scripts/restart.sh        # Restart all
 
 ## 6. Rollback
 
+### Automatic (deploy-native.sh)
+
+If the health check fails after a deploy, `deploy-native.sh` automatically restores the `.previous` binaries from the release directory and restarts the services.
+
+### Manual
+
 ```bash
 bash /opt/blueprint/scripts/rollback.sh
 ```
 
-Restores previous binaries from `.bak` files, restarts services, runs health check.
+Restores previous binaries, restarts services, runs health check.
+
+### From a specific release
+
+Releases are kept for 14 days under `/opt/blueprint/releases/`. To rollback to a specific release:
+
+```bash
+ls /opt/blueprint/releases/          # find the SHA you want
+bash /opt/blueprint/scripts/deploy-native.sh <sha>
+```
 
 ---
 
@@ -361,16 +417,23 @@ EMAIL_VERIFICATION_REQUIRED=false
 ```
 /opt/blueprint/
 ├── api/
-│   ├── blueprint-api          # Go binary
-│   └── blueprint-api.bak      # Previous version (rollback)
+│   ├── blueprint-api          # Go binary (live)
 ├── health/
-│   ├── blueprint-health       # Health monitor binary
-│   └── blueprint-health.bak
+│   ├── blueprint-health       # Health monitor binary (live)
 ├── frontend/                  # Vue 3 dist (static)
 ├── uploads/                   # User uploads
 ├── backups/                   # pg_dump files
 ├── logs/                      # App logs
-├── scripts/                   # Operational scripts
+├── scripts/                   # Operational scripts (including deploy-native.sh)
+├── releases/
+│   ├── incoming/              # Staging area for next deploy (empty after promote)
+│   ├── <sha>/                 # Promoted release (keeps .previous for rollback)
+│   │   ├── bin/
+│   │   │   ├── blueprint-api.previous
+│   │   │   └── blueprint-health.previous
+│   │   ├── frontend/
+│   │   └── grafana/
+│   └── staging-<sha>/         # Transient, cleaned up by trap
 └── .env.production            # Environment config
 ```
 
@@ -385,7 +448,8 @@ EMAIL_VERIFICATION_REQUIRED=false
 | `install.sh` | VPS | Lightweight dependency installer |
 | `setup-nginx.sh` | VPS | Nginx + SSL + Brotli config |
 | `setup-monitoring.sh` | VPS | Prometheus + Grafana + Node Exporter |
-| `deploy.sh` | Local | Build + upload + restart + health check |
+| `deploy.sh` | Local | Build + upload + restart + health check (manual fallback) |
+| `deploy-native.sh` | VPS | Promote CI-built artifact + health check + auto-rollback |
 | `start.sh` / `stop.sh` / `restart.sh` | VPS | Service control |
 | `rollback.sh` | VPS | Restore previous binaries |
 | `health.sh` | VPS | 6-check health report (JSON) |

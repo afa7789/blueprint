@@ -1,0 +1,95 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.21"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.10"
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Build release artifacts
+        working-directory: backend
+        env:
+          RELEASE_DIR: ${{ github.workspace }}/release
+        run: |
+          set -euo pipefail
+          mkdir -p "$RELEASE_DIR/bin"
+          go mod download
+          for binary in blueprint-api blueprint-health; do
+            case "$binary" in
+              blueprint-api)    package=./cmd/server ;;
+              blueprint-health) package=./cmd/health ;;
+            esac
+            CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+              go build -trimpath -ldflags="-s -w" \
+              -o "$RELEASE_DIR/bin/$binary" "$package"
+          done
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+          mkdir -p "$GITHUB_WORKSPACE/release/frontend"
+          cp -a dist/. "$GITHUB_WORKSPACE/release/frontend/"
+
+      - name: Assemble observability config
+        run: |
+          mkdir -p release/grafana
+          cp -a scripts/grafana/. release/grafana/
+
+      - name: Configure SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/blueprint_deploy
+          chmod 600 ~/.ssh/blueprint_deploy
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          SSH="ssh -i $HOME/.ssh/blueprint_deploy -o IdentitiesOnly=yes"
+          RELEASE_ID="${{ github.event.workflow_run.head_sha }}"
+          rsync -az --delete -e "$SSH" \
+            release/ "$VPS_USER@$VPS_HOST:/opt/blueprint/releases/incoming/$RELEASE_ID/"
+          rsync -az -e "$SSH" scripts/deploy-native.sh \
+            "$VPS_USER@$VPS_HOST:/opt/blueprint/scripts/deploy-native.sh"
+
+      - name: Activate release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -i ~/.ssh/blueprint_deploy -o IdentitiesOnly=yes \
+            "$VPS_USER@$VPS_HOST" \
+            'chmod +x /opt/blueprint/scripts/deploy-native.sh && /opt/blueprint/scripts/deploy-native.sh ${{ github.event.workflow_run.head_sha }}'

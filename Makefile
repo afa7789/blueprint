@@ -65,7 +65,9 @@ build-frontend:
 
 build: build-backend build-frontend
 
-# === Deploy (VPS) ===
+# === Deploy (VPS) — immutable artifacts via CI ===
+# Production deploys run automatically via GitHub Actions (deploy.yml).
+# The commands below are kept for manual/emergency use on the VPS.
 
 deploy-backend:
 	bash scripts/deploy.sh --backend
@@ -78,6 +80,11 @@ deploy:
 
 deploy-dry:
 	bash scripts/deploy.sh --all --dry-run
+
+deploy-native:
+	@echo "Usage: make deploy-native RELEASE_ID=<sha>"
+	@echo "  Run this ON THE VPS after CI uploads the release artifact."
+	bash scripts/deploy-native.sh "$(RELEASE_ID)"
 
 # === Quality: test, lint, format, typecheck ===
 
